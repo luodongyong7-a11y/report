@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>niqer-report-preview</title>
+<style>
+  html, body { height: 100%; margin: 0; }
+  niqer-report-preview { display: block; height: 100vh; }
+</style>
+<script type="module">
+  import '../src/print-tool/preview-element.js'
+  const el = document.querySelector('niqer-report-preview')
+  el.getAuthHeaders = () => {
+    const token = sessionStorage.getItem('report-supply-token') || ''
+    return token ? { Authorization: 'Bearer ' + token } : {}
+  }
+  el.addEventListener('error', (e) => console.error(e.detail))
+</script>
+<niqer-report-preview api-base="/report" template-api="/report/mode" locale="zh-CN"></niqer-report-preview>

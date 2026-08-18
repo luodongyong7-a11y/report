@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>niqer-report</title>
+<style>
+  body { font: 14px/1.4 sans-serif; margin: 24px; background: #eee; }
+  h1 { font-size: 16px; }
+</style>
+<script type="module">
+  import '../src/index.js'
+  const docTpl = {
+    printKind: 'document',
+    paperSize: { width: 400, height: 280 },
+    headerY: 36,
+    summaryA: 200,
+    summaryB: 230,
+    footerY: 250,
+    elements: [
+      { id: 'h', type: 'text', x: 12, y: 8, width: 376, height: 22, content: '出货单', style: { fontSize: 16, fontWeight: 'bold' } },
+      { id: 'n', type: 'text', x: 12, y: 44, width: 200, height: 22, content: '${ds1.name}', groupId: 'row' },
+      { id: 'q', type: 'text', x: 220, y: 44, width: 80, height: 22, content: '${ds1.qty}', groupId: 'row' },
+      { id: 's', type: 'text', x: 12, y: 208, width: 200, height: 20, content: '合计 ${sum(ds1.qty)}' },
+      { id: 'f', type: 'text', x: 12, y: 256, width: 120, height: 18, content: '${page}/${total}' }
+    ]
+  }
+  const labelTpl = {
+    printKind: 'label',
+    paperSize: { width: 240, height: 120 },
+    elements: [
+      { id: 't', type: 'text', x: 12, y: 10, width: 216, height: 22, content: '${ds1.sku}', style: { fontWeight: 'bold' } },
+      { id: 'b', type: 'barcode', x: 12, y: 40, width: 216, height: 48, content: '${ds1.code}', barcodeFormat: 'code128' },
+      { id: 'q', type: 'qrcode', x: 188, y: 92, width: 24, height: 24, content: '${ds1.sku}' }
+    ]
+  }
+  const data = {
+    ds1: {
+      type: 'EXCEL',
+      data: [
+        { name: '纸箱', qty: 12, sku: 'BOX-01', code: 'BOX01' },
+        { name: '标签', qty: 30, sku: 'LBL-02', code: 'LBL02' }
+      ]
+    }
+  }
+
+  const a = document.querySelector('#doc')
+  const b = document.querySelector('#label')
+  a.data = data
+  b.data = data
+  a.template = docTpl
+  b.template = labelTpl
+</script>
+<h1>普通打印</h1>
+<niqer-report id="doc" scale="1"></niqer-report>
+<h1>标签</h1>
+<niqer-report id="label" scale="1"></niqer-report>

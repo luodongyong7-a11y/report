@@ -1,0 +1,67 @@
+{
+  "name": "@niqer/report",
+  "version": "0.1.0",
+  "description": "Report Web Components: designer + template/dataset render to HTML/PDF. No Vue.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./element": "./src/render/element.js",
+    "./designer": "./src/designer/element.js",
+    "./print-tool": "./src/print-tool/element.js",
+    "./preview": "./src/print-tool/preview-element.js",
+    "./expressions": "./src/expressions.js",
+    "./font-policy": "./src/fontPolicy.js",
+    "./schema": "./src/schema.js",
+    "./print-job": "./src/printJob.js",
+    "./marks": "./src/marks/index.js",
+    "./rfid": "./src/rfid.js",
+    "./edi-map": "./src/ediMap.js",
+    "./paper": "./src/paper.js",
+    "./barcode-grade": "./src/barcodeGrade.js",
+    "./upc-adobe": "./src/upcAdobe.js",
+    "./barcode-bwip-catalog": "./src/barcodeBwipCatalog.js",
+    "./layout": "./src/layout/index.js",
+    "./layout/*": "./src/layout/*"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "report",
+    "web-component",
+    "designer",
+    "custom-element",
+    "pdf",
+    "barcode",
+    "layout"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
+    "@codemirror/lang-sql": "^6.10.0",
+    "@codemirror/state": "^6.7.1",
+    "@niqer/barcode": "file:D:/niqer-barcode",
+    "@niqer/pdf": "file:D:/niqer-pdf",
+    "codemirror": "^6.0.2"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
+  },
+  "license": "MIT",
+  "author": "niqer",
+  "sideEffects": [
+    "./src/render/element.js",
+    "./src/designer/element.js",
+    "./src/print-tool/element.js",
+    "./src/print-tool/preview-element.js"
+  ]
+}
