@@ -341,6 +341,7 @@ export function mountPrintTool (host, opts = {}) {
     http,
     templateApi,
     isAdmin: () => !opts.isAdmin || opts.isAdmin(),
+    storagePlugin: opts.storagePlugin,
     onSelect (id) { loadId(id).catch((err) => toast(host, err.message || String(err), 'err')) },
     onSave,
     async onExport () {
@@ -377,6 +378,7 @@ export function mountPrintTool (host, opts = {}) {
 
   datasetApi = mountDataset(host, datasetPane, {
     http,
+    datasourcePlugin: opts.datasourcePlugin,
     isAdmin: () => !opts.isAdmin || opts.isAdmin(),
     getDataset () { return designer.getData() },
     setDataset (ds, silent) { designer.setData(ds, silent) },

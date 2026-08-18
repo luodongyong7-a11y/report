@@ -24,6 +24,8 @@ class NiqerPrintTool extends (typeof HTMLElement === 'function' ? HTMLElement : 
     this._getAuthHeaders = null
     this._isAdmin = () => true
     this._hostPrintCount = null
+    this._storagePlugin = null
+    this._datasourcePlugin = null
     this._gen = 0
   }
 
@@ -48,6 +50,18 @@ class NiqerPrintTool extends (typeof HTMLElement === 'function' ? HTMLElement : 
   get hostPrintCount () { return this._hostPrintCount }
   set hostPrintCount (v) {
     this._hostPrintCount = v
+    if (this.isConnected) this.mount()
+  }
+
+  get storagePlugin () { return this._storagePlugin }
+  set storagePlugin (v) {
+    this._storagePlugin = v
+    if (this.isConnected) this.mount()
+  }
+
+  get datasourcePlugin () { return this._datasourcePlugin }
+  set datasourcePlugin (v) {
+    this._datasourcePlugin = v
     if (this.isConnected) this.mount()
   }
 
@@ -110,6 +124,8 @@ class NiqerPrintTool extends (typeof HTMLElement === 'function' ? HTMLElement : 
         getAuthHeaders: () => this._getAuthHeaders && this._getAuthHeaders(),
         isAdmin: this._isAdmin,
         hostPrintCount: this._hostPrintCount,
+        storagePlugin: this._storagePlugin,
+        datasourcePlugin: this._datasourcePlugin,
         locale: this.locale,
         previewHtmlPath: this.previewHtmlPath,
         previewPdfPath: this.previewPdfPath
@@ -144,6 +160,8 @@ function toPrintToolElement (opts = {}) {
   if (opts.getAuthHeaders) el.getAuthHeaders = opts.getAuthHeaders
   if (opts.locale) el.locale = opts.locale
   if (opts.hostPrintCount) el.hostPrintCount = opts.hostPrintCount
+  if (opts.storagePlugin) el.storagePlugin = opts.storagePlugin
+  if (opts.datasourcePlugin) el.datasourcePlugin = opts.datasourcePlugin
   if (opts.isAdmin != null) el.isAdmin = opts.isAdmin
   if (opts.previewHtmlPath) el.previewHtmlPath = opts.previewHtmlPath
   if (opts.previewPdfPath) el.previewPdfPath = opts.previewPdfPath

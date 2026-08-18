@@ -1,5 +1,6 @@
 import { REPORT_TEMPLATE_API_BASE, templateItemUrl, withStamp } from './api.js'
 import { ht } from './i18n.js'
+import { hasStoragePlugin, openStorageDialog } from './storage-ui.js'
 import { confirmDlg, promptDlg, toast, downloadBlob, invalidId } from './util.js'
 
 function defaultNameFromFile (fileName) {
@@ -94,7 +95,8 @@ export function mountTemplates (host, pane, ctx) {
     plus: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>',
     imp: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/></svg>',
     exp: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708.708L8.5 9.293V1.5a.5.5 0 0 0-1 0v7.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>',
-    del: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>'
+    del: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>',
+    storage: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 3.5A1.5 1.5 0 0 1 3.5 2h9A1.5 1.5 0 0 1 14 3.5v2A1.5 1.5 0 0 1 12.5 7h-9A1.5 1.5 0 0 1 2 5.5v-2zM3.5 3a.5.5 0 0 0-.5.5v2a.5.5 0 0 0 .5.5h9a.5.5 0 0 0 .5-.5v-2a.5.5 0 0 0-.5-.5h-9z"/><path d="M2 9.5A1.5 1.5 0 0 1 3.5 8h9A1.5 1.5 0 0 1 14 9.5v2a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 11.5v-2zM3.5 9a.5.5 0 0 0-.5.5v2a.5.5 0 0 0 .5.5h9a.5.5 0 0 0 .5-.5v-2a.5.5 0 0 0-.5-.5h-9z"/></svg>'
   }
 
   function syncChrome () {
@@ -127,6 +129,9 @@ export function mountTemplates (host, pane, ctx) {
           '<button type="button" class="action-btn import-btn" data-act="imp" title="' + ht(host, 'designer.templateIo.importTitle') + '">' + svg.imp + '</button>' +
           '<button type="button" class="action-btn export-btn" data-act="exp" title="' + ht(host, 'report.template.export') + '">' + svg.exp + '</button>' +
           '<button type="button" class="action-btn delete-btn" data-act="del" title="' + ht(host, 'designer.templatesPanel.deleteTitle') + '">' + svg.del + '</button>' +
+          (hasStoragePlugin(ctx.storagePlugin)
+            ? '<button type="button" class="action-btn storage-btn" data-act="storage" title="' + ht(host, 'designer.templatesPanel.storageTitle') + '">' + svg.storage + '</button>'
+            : '') +
           '<input type="file" data-file="imp" accept=".json" style="display:none">'
         : '') +
       '</div>' +
@@ -259,6 +264,11 @@ export function mountTemplates (host, pane, ctx) {
     if (act === 'prev') loadPage(state.pageNum - 1)
     if (act === 'next') loadPage(state.pageNum + 1)
     if (act === 'save') ctx.onSave()
+    if (act === 'storage') {
+      const changed = await openStorageDialog(host, ctx.storagePlugin)
+      if (changed) await load(1)
+      return
+    }
     if (act === 'new') return createTemplate()
     if (act === 'imp') {
       const input = pane.querySelector('[data-file=imp]')

@@ -305,6 +305,23 @@ export const PRINT_TOOL_CSS = VUE_CLONE_CSS + `
 }
 .tab-content > [data-pane] { flex: 1; height: 100%; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
 .tab-content > [data-pane][hidden] { display: none !important; }
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #374151;
+}
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+[data-pane=dataset] .ds-plugin-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
 [data-pane=param] > .data-panel,
 [data-pane=dataset] > .data-panel {
   box-sizing: border-box;
@@ -553,6 +570,7 @@ export const PRINT_TOOL_CSS = VUE_CLONE_CSS + `
 .templates-panel .action-btn.plus-btn:hover:not(:disabled) { background-color: #e7f5ff; border-color: #28a745; color: #28a745; }
 .templates-panel .action-btn.delete-btn:hover:not(:disabled) { background-color: #fff5f5; border-color: #dc3545; color: #dc3545; }
 .templates-panel .action-btn.save-btn:hover:not(:disabled) { background-color: #e7f3ff; border-color: #007bff; color: #007bff; }
+.templates-panel .action-btn.storage-btn:hover:not(:disabled) { background-color: #e7f3ff; border-color: #007bff; color: #007bff; }
 .export-btn__spinner { width: 14px; height: 14px; border: 2px solid #e0e0e0; border-top-color: #007bff; border-radius: 50%; animation: export-btn-spin 0.75s linear infinite; }
 @keyframes export-btn-spin { to { transform: rotate(360deg); } }
 .template-list { display: flex; flex-direction: column; gap: 8px; flex: 1; overflow-y: auto; }

@@ -1,5 +1,6 @@
 // 禁止: schema?dbName、Excel、虚构后端代理
 import { REPORT_DATASET_API_FETCH, REPORT_SQL_PARSE, REPORT_SQL_SCHEMA } from './api.js'
+import { canManageDatasource, openDatasourceDialog } from './datasource-ui.js'
 import { ht } from './i18n.js'
 import { mountSqlEditor } from './sql-editor.js'
 import { confirmDlg, formatReportSql, toast } from './util.js'
@@ -162,6 +163,9 @@ export function mountDataset (host, pane, ctx) {
     const keepY = scroller ? scroller.scrollTop : 0
     let html = '<div class="data-panel" tabindex="-1" data-ds-root>'
     html += '<div class="panel-content">'
+    if (canManageDatasource(ctx.datasourcePlugin)) {
+      html += '<div class="ds-plugin-bar"><button type="button" class="link-btn" data-act="conns">' + esc(ht(host, 'reportDesigner.dataset.manageConnections')) + '</button></div>'
+    }
     if (admin) {
       html += '<div class="ds-item new-dataset-card" data-act="add"><div class="ds-item-header"><div class="ds-title"><span class="ds-name">' + esc(ht(host, 'reportDesigner.dataset.addDatasetCard')) + '</span><span class="ds-badges"><span class="badge">SQL/API</span></span></div><div class="ds-meta"><span class="chev">▸</span></div></div></div>'
     }
@@ -236,8 +240,14 @@ export function mountDataset (host, pane, ctx) {
 
   async function loadConnections () {
     if (state.connectionsLoaded) return state.connections
+    const plugin = ctx.datasourcePlugin
+    if (!plugin || typeof plugin.list !== 'function') {
+      state.connections = []
+      state.connectionsLoaded = true
+      return state.connections
+    }
     try {
-      const data = await ctx.http.get('/report/tool/connections')
+      const data = await plugin.list()
       state.connections = Array.isArray(data) ? data : []
     } catch {
       state.connections = []
@@ -695,6 +705,11 @@ export function mountDataset (host, pane, ctx) {
   pane.addEventListener('click', async (ev) => {
     const actBtn = ev.target.closest('[data-act]')
     const act = actBtn && pane.contains(actBtn) ? actBtn.dataset.act : ''
+    if (act === 'conns') {
+      const changed = await openDatasourceDialog(host, ctx.datasourcePlugin)
+      if (changed) state.connectionsLoaded = false
+      return
+    }
     if (act === 'add' || ev.target.closest('.new-dataset-card')) {
       openEditor('')
       return
