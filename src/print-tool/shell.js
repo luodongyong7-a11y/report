@@ -1,4 +1,3 @@
-// 规格: packages/report-vue/src/views/designer/PrintDesignerView.vue
 // 禁止: ZPL 入口、面板 200–480、空白模板预置 EXCEL
 import { CURRENT_REPORT_SCHEMA_VERSION } from '../schema.js'
 import { createBlankTemplate, exportTemplate, normalizeDesignerTemplate, refreshGroups } from '../designer/model.js'

@@ -1,4 +1,3 @@
-// 规格: packages/report-vue/src/components/designer/DatasetPanel.vue
 // 禁止: schema?dbName、Excel、虚构后端代理
 import { REPORT_DATASET_API_FETCH, REPORT_SQL_PARSE, REPORT_SQL_SCHEMA } from './api.js'
 import { ht } from './i18n.js'

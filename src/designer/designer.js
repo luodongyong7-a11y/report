@@ -1,4 +1,3 @@
-// 规格: packages/report-vue DesignArea.vue + reportBarcodeCanvas.js
 // 禁止: canvas-barcode.js 的 pad/DPR/Adobe；条码尺寸只认 -6
 import { encode, defineBarcodeElement } from '@niqer/barcode'
 import { getFirstPlaceholderToken, getIterationArrayPath, ROW_COND_BG_OPS } from '../expressions.js'

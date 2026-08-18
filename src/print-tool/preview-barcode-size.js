@@ -1,4 +1,3 @@
-// 规格: packages/report-vue/src/utils/reportBarcodeCanvas.js
 // 禁止改公式、禁止 oss canvas-barcode 的 pad/DPR/Adobe
 export function previewQrCanvasSize (element) {
   return Math.max(10, Math.min(element.width || 100, element.height || 100) - 6)

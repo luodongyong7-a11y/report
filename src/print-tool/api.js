@@ -1,4 +1,3 @@
-// 规格: packages/report-vue/src/constants/reportApi.js
 // 禁止: /report/dataset/excel-parse、/report/zpl
 export const REPORT_TEMPLATE_API_BASE = '/report/mode'
 export const REPORT_SQL_API_BASE = '/report/sql'

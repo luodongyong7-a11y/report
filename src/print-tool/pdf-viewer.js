@@ -1,4 +1,3 @@
-// 规格: packages/report-vue/src/components/report/ReportPdfPagesViewer.vue
 // 缩放 50%–300%，先 CSS scale 再 420ms 后清晰重绘；PDF_CSS_SCALE=96/72
 import { PdfDocument, paintPage } from '@niqer/pdf'
 
