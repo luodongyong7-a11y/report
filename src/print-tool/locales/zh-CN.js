@@ -9,7 +9,7 @@ export default {
     "template": {
       "saveTitle": "保存模板",
       "codeLabel": "模板编码（文件名）：",
-      "codePlaceholder": "请输入模板编码（如 order.json）",
+      "codePlaceholder": "请输入模板编码（如 order）",
       "nameCn": "中文名称：",
       "nameCnPlaceholder": "用于中文环境列表/打印标题显示",
       "nameEn": "英文名称：",
@@ -173,8 +173,8 @@ export default {
       "customSize": "自定义",
       "widthCm": "宽(cm)",
       "heightCm": "高(cm)",
-      "widthMm": "宽(mm)",
-      "heightMm": "高(mm)",
+      "widthMm": "宽",
+      "heightMm": "高",
       "portrait": "纵向",
       "landscape": "横向",
       "kind": "类型",
@@ -272,22 +272,15 @@ export default {
       "symAztec": "Aztec",
       "tabParam": "参数",
       "tabDataset": "数据集",
-      "tabPrintCount": "打印次数"
+      "tabConnections": "连接管理"
+    },
+    "license": {
+      "xlsxDenied": "Excel 导出需激活收费版"
     },
     "newTemplate": {
       "title": "新建模板",
       "idLabel": "模板ID：",
       "idPlaceholder": "请输入模板ID（唯一标识）"
-    },
-    "printCount": {
-      "hint": "写入模板 printCount.table 与可选 whereSql（占位符 #{'{'}参数名{'}'} 与数据集一致）。条件留空时，服务端用预览请求里除模板元数据外的参数，按参数名转 snake_case 列名自动生成 AND 等值条件。预览响应不含此项。",
-      "enable": "启用",
-      "yes": "是",
-      "no": "否",
-      "table": "业务表",
-      "tablePlaceholder": "选择主表",
-      "condition": "条件",
-      "wherePlaceholder": "手写 WHERE 片段，占位符与参数 Tab 一致（如 id = #{'{'}orderId{'}'}）；留空则由服务端按预览参数自动生成"
     },
     "messages": {
       "saveBeforePreview": "请先保存模板后再预览",
@@ -438,6 +431,8 @@ export default {
       "manageConnections": "管理连接",
       "connectionsTitle": "数据源",
       "newConnection": "新增连接",
+      "addConnectionCard": "+ 添加连接",
+      "confirmDeleteConnection": "确定删除连接 {name} 吗？",
       "noConnections": "还没有数据源，先新增一条 JDBC 连接。",
       "connId": "标识",
       "connName": "名称",

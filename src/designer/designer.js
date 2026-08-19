@@ -308,12 +308,24 @@ export function mountDesigner (host, opts = {}) {
 
   function paintToolbar () {
     if (state.tbMenu === 'border' && !state.selected.size) state.tbMenu = ''
+    const root = bar.getRootNode ? bar.getRootNode() : null
+    const ae = root && root.activeElement && bar.contains(root.activeElement) ? root.activeElement : null
+    const keep = (ae && (ae.dataset.act === 'mmw' || ae.dataset.act === 'mmh'))
+      ? { act: ae.dataset.act, value: ae.value }
+      : null
     bar.classList.add('toolbar')
     bar.innerHTML = renderToolbar(state.tpl, selectedEls(), {
       t: (key) => ht(host, key),
       borderDraft: state.borderDraft,
       tbMenu: state.tbMenu
     }) + extraToolbarHtml
+    if (keep) {
+      const el = bar.querySelector('[data-act="' + keep.act + '"]')
+      if (el) {
+        el.value = keep.value
+        el.focus()
+      }
+    }
   }
 
   function closeTbMenus () {
@@ -1607,6 +1619,8 @@ export function mountDesigner (host, opts = {}) {
       return
     }
     if (ev.key === 'Escape') {
+      const root = host.shadowRoot || host
+      if (root.querySelector('.npt-preview.el-overlay:not([hidden]), .el-overlay.npt-mask, .npt-mask')) return
       ev.preventDefault()
       if (state.tbMenu) {
         closeTbMenus()
@@ -1662,8 +1676,12 @@ export function mountDesigner (host, opts = {}) {
     if (act === 'mmw' || act === 'mmh') {
       const wEl = bar.querySelector('[data-act=mmw]')
       const hEl = bar.querySelector('[data-act=mmh]')
-      if (wEl && hEl) applyCustomPaperMm(state.tpl, Number(wEl.value), Number(hEl.value), state.tpl.paperOrientation)
-      commit()
+      const w = wEl ? Number(wEl.value) : 0
+      const h = hEl ? Number(hEl.value) : 0
+      if (w > 0 && h > 0) {
+        applyCustomPaperMm(state.tpl, w, h, state.tpl.paperOrientation)
+        commit()
+      }
     }
     if (act === 'bc') {
       applyBorderPen(true, false)
@@ -1734,8 +1752,14 @@ export function mountDesigner (host, opts = {}) {
       const picked = btn.dataset.val
       closeTbMenus()
       if (picked === 'custom' || picked === 'CUSTOM') {
-        state.tpl.paperPreset = 'CUSTOM'
-        paintToolbar()
+        const wmm = state.tpl.customPaperSizeMm && state.tpl.customPaperSizeMm.width > 0
+          ? state.tpl.customPaperSizeMm.width
+          : pxToMm(state.tpl.paperSize && state.tpl.paperSize.width)
+        const hmm = state.tpl.customPaperSizeMm && state.tpl.customPaperSizeMm.height > 0
+          ? state.tpl.customPaperSizeMm.height
+          : pxToMm(state.tpl.paperSize && state.tpl.paperSize.height)
+        applyCustomPaperMm(state.tpl, wmm, hmm, state.tpl.paperOrientation)
+        commit()
         return
       }
       applyPaperPreset(state.tpl, picked, state.tpl.paperOrientation)

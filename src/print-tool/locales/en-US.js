@@ -9,7 +9,7 @@ export default {
     "template": {
       "saveTitle": "Save Template",
       "codeLabel": "Template Code (filename):",
-      "codePlaceholder": "e.g. order.json",
+      "codePlaceholder": "e.g. order",
       "nameCn": "Chinese Name:",
       "nameCnPlaceholder": "Shown when UI locale is Chinese",
       "nameEn": "English Name:",
@@ -173,8 +173,8 @@ export default {
       "customSize": "Custom",
       "widthCm": "W (cm)",
       "heightCm": "H (cm)",
-      "widthMm": "W (mm)",
-      "heightMm": "H (mm)",
+      "widthMm": "W",
+      "heightMm": "H",
       "portrait": "Portrait",
       "landscape": "Landscape",
       "kind": "Kind",
@@ -272,22 +272,15 @@ export default {
       "symAztec": "Aztec",
       "tabParam": "Parameters",
       "tabDataset": "Datasets",
-      "tabPrintCount": "Print Count"
+      "tabConnections": "Connections"
+    },
+    "license": {
+      "xlsxDenied": "Excel export requires a paid license"
     },
     "newTemplate": {
       "title": "New Template",
       "idLabel": "Template ID:",
       "idPlaceholder": "Enter template ID (unique identifier)"
-    },
-    "printCount": {
-      "hint": "Writes template printCount.table and optional whereSql (placeholder #{'{'}paramName{'}'} matches the dataset). When the condition is empty, the server uses the preview request params (excluding template metadata), converting param names to snake_case columns to auto-generate AND equality conditions. Not included in the preview response.",
-      "enable": "Enable",
-      "yes": "Yes",
-      "no": "No",
-      "table": "Business Table",
-      "tablePlaceholder": "Select main table",
-      "condition": "Condition",
-      "wherePlaceholder": "Hand-written WHERE fragment, placeholders same as the Parameters tab (e.g. id = #{'{'}orderId{'}'}); leave empty for the server to auto-generate from preview params"
     },
     "messages": {
       "saveBeforePreview": "Please save the template before previewing",
@@ -438,6 +431,8 @@ export default {
       "manageConnections": "Manage connections",
       "connectionsTitle": "Data sources",
       "newConnection": "New connection",
+      "addConnectionCard": "+ Add connection",
+      "confirmDeleteConnection": "Delete connection {name}?",
       "noConnections": "No data sources yet. Add a JDBC connection first.",
       "connId": "Id",
       "connName": "Name",

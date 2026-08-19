@@ -15,7 +15,7 @@ import {
   setSilentPrintEnabled,
   syncLocalAgentShare
 } from './print-agent.js'
-import { toast } from './util.js'
+import { bindOverlayEscape, toast } from './util.js'
 
 function esc (s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;')
@@ -49,11 +49,16 @@ export function mountPrintSettingsDialog (host, ctx) {
   const doc = host.ownerDocument
   const root = host.shadowRoot || host
   let mask = null
+  let unbindEsc = null
   let currentAgent = null
   let printers = []
   let onlineAgents = []
 
   function close () {
+    if (unbindEsc) {
+      unbindEsc()
+      unbindEsc = null
+    }
     if (mask) mask.remove()
     mask = null
     currentAgent = null
@@ -127,10 +132,11 @@ export function mountPrintSettingsDialog (host, ctx) {
   }
 
   async function open () {
-    if (mask) mask.remove()
+    close()
     mask = doc.createElement('div')
     mask.className = 'npt-mask ps-mask'
     root.appendChild(mask)
+    unbindEsc = bindOverlayEscape(host, mask, close)
     const saved = loadPrintSettings()
     let printerName = getPreferredPrinter() || ''
     const baseUrl = getAgentBaseUrl()

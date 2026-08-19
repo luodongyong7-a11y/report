@@ -1,3 +1,4 @@
+import { licenseIsPro } from '../protect/licenseVerify.js'
 import { PRINT_MODE_PREVIEW, REPORT_HTML_PREVIEW, REPORT_PDF, REPORT_PDF_PREVIEW, REPORT_XLSX } from './api.js'
 import { asPdfBlob } from './pdf-blob.js'
 import { downloadBlob } from './util.js'
@@ -146,8 +147,8 @@ export function createPreviewShell (ctx) {
   function ensurePrintIframe () {
     if (printIframe && printIframe.isConnected) return printIframe
     const iframe = document.createElement('iframe')
-    iframe.setAttribute('title', 'report-pdf-print')
-    iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;'
+    iframe.setAttribute('title', 'report-print')
+    iframe.style.cssText = 'position:fixed;left:-10000px;top:0;width:1024px;height:768px;border:0;opacity:0;pointer-events:none;'
     document.body.appendChild(iframe)
     printIframe = iframe
     return iframe
@@ -171,16 +172,14 @@ export function createPreviewShell (ctx) {
     })
   }
 
-  async function printBlob (blob) {
-    if (!blob) return false
+  async function printFrame (prepare) {
     const active = document.activeElement
     revokePrintUrl()
     const iframe = ensurePrintIframe()
-    printObjectUrl = window.URL.createObjectURL(blob)
-    const loadPromise = waitIframeLoad(iframe)
-    iframe.src = printObjectUrl
+    const loadPromise = waitIframeLoad(iframe, 12000)
+    await prepare(iframe)
     await loadPromise
-    await new Promise((r) => setTimeout(r, 50))
+    await new Promise((r) => setTimeout(r, 280))
     try {
       iframe.contentWindow && iframe.contentWindow.print()
       return true
@@ -191,6 +190,22 @@ export function createPreviewShell (ctx) {
         try { active.focus() } catch { /* ignore */ }
       }
     }
+  }
+
+  async function printBlob (blob) {
+    if (!blob) return false
+    return printFrame((iframe) => {
+      printObjectUrl = window.URL.createObjectURL(blob)
+      iframe.src = printObjectUrl
+    })
+  }
+
+  async function printHtml (html) {
+    const raw = String(html || '').trim()
+    if (!raw) return false
+    return withPrintBusy(() => printFrame((iframe) => {
+      iframe.srcdoc = raw
+    }))
   }
 
   async function printWithAgentOrBrowser (blob, apiParams = {}) {
@@ -249,6 +264,7 @@ export function createPreviewShell (ctx) {
   }
 
   async function downloadXlsx (apiParams) {
+    if (!licenseIsPro(ctx.getLicenseStatus && ctx.getLicenseStatus())) return
     if (!apiParams || !apiParams.templateId || state.xlsxLoading) return
     state.xlsxLoading = true
     try {
@@ -283,6 +299,7 @@ export function createPreviewShell (ctx) {
     downloadXlsx,
     fetchPdfBlob,
     fetchHtmlPreview,
+    printHtml,
     reset,
     currentKey: () => currentKey
   }

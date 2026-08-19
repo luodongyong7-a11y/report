@@ -1,4 +1,5 @@
 import { createBlankTemplate } from '../designer/model.js'
+import { parseLoadedContent } from '../protect/templateCodec.js'
 import { createDefaultFetcher } from './http.js'
 import { mountPrintTool } from './shell.js'
 import './preview-element.js'
@@ -23,7 +24,7 @@ class NiqerPrintTool extends (typeof HTMLElement === 'function' ? HTMLElement : 
     this._fetcher = null
     this._getAuthHeaders = null
     this._isAdmin = () => true
-    this._hostPrintCount = null
+    this._licenseStatus = { edition: 'free', active: false }
     this._storagePlugin = null
     this._datasourcePlugin = null
     this._gen = 0
@@ -47,10 +48,14 @@ class NiqerPrintTool extends (typeof HTMLElement === 'function' ? HTMLElement : 
   get previewPdfPath () { return this.getAttribute('preview-pdf-path') || '/designer/preview' }
   set previewPdfPath (v) { this.setAttribute('preview-pdf-path', String(v || '/designer/preview')) }
 
-  get hostPrintCount () { return this._hostPrintCount }
-  set hostPrintCount (v) {
-    this._hostPrintCount = v
-    if (this.isConnected) this.mount()
+  get licenseStatus () { return this._licenseStatus }
+  set licenseStatus (v) { this.setLicenseStatus(v) }
+
+  get licenseEdition () { return this._licenseStatus && this._licenseStatus.edition ? this._licenseStatus.edition : 'free' }
+
+  setLicenseStatus (status) {
+    this._licenseStatus = status && typeof status === 'object' ? status : { edition: 'free', active: false }
+    if (this._api && typeof this._api.setLicenseStatus === 'function') this._api.setLicenseStatus(this._licenseStatus)
   }
 
   get storagePlugin () { return this._storagePlugin }
@@ -111,7 +116,7 @@ class NiqerPrintTool extends (typeof HTMLElement === 'function' ? HTMLElement : 
       if (!tpl && this.src) {
         const res = await fetch(this.src)
         if (!res.ok) throw new Error('print-tool fetch ' + res.status)
-        tpl = await res.json()
+        tpl = JSON.parse(await parseLoadedContent(await res.arrayBuffer()))
         if (gen !== this._gen) return
         this._pending = tpl
       }
@@ -123,7 +128,7 @@ class NiqerPrintTool extends (typeof HTMLElement === 'function' ? HTMLElement : 
         fetcher: this._fetcher || createDefaultFetcher(() => this._getAuthHeaders && this._getAuthHeaders()),
         getAuthHeaders: () => this._getAuthHeaders && this._getAuthHeaders(),
         isAdmin: this._isAdmin,
-        hostPrintCount: this._hostPrintCount,
+        licenseStatus: this._licenseStatus,
         storagePlugin: this._storagePlugin,
         datasourcePlugin: this._datasourcePlugin,
         locale: this.locale,
@@ -159,7 +164,7 @@ function toPrintToolElement (opts = {}) {
   if (opts.fetcher) el.fetcher = opts.fetcher
   if (opts.getAuthHeaders) el.getAuthHeaders = opts.getAuthHeaders
   if (opts.locale) el.locale = opts.locale
-  if (opts.hostPrintCount) el.hostPrintCount = opts.hostPrintCount
+  if (opts.licenseStatus) el.setLicenseStatus(opts.licenseStatus)
   if (opts.storagePlugin) el.storagePlugin = opts.storagePlugin
   if (opts.datasourcePlugin) el.datasourcePlugin = opts.datasourcePlugin
   if (opts.isAdmin != null) el.isAdmin = opts.isAdmin

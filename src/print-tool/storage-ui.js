@@ -1,5 +1,5 @@
 import { ht } from './i18n.js'
-import { toast } from './util.js'
+import { bindOverlayEscape, toast } from './util.js'
 
 function esc (s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;')
@@ -92,7 +92,9 @@ export async function openStorageDialog (host, plugin) {
     })
   }
 
+  let unbindEsc = () => {}
   function close () {
+    unbindEsc()
     mask.remove()
   }
 
@@ -124,13 +126,8 @@ export async function openStorageDialog (host, plugin) {
       paint()
     }
   })
-  mask.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Escape') {
-      ev.preventDefault()
-      close()
-    }
-  })
   root.appendChild(mask)
+  unbindEsc = bindOverlayEscape(host, mask, close)
   paint()
   return new Promise((resolve) => {
     const obs = new MutationObserver(() => {

@@ -7,13 +7,14 @@ import { createHttp } from './http.js'
 import { PRINT_TOOL_CSS } from './style.js'
 import { mountTemplates } from './templates.js'
 import { mountParam } from './param.js'
+import { hasDatasourcePlugin, mountConnections } from './datasource-ui.js'
 import { mountDataset } from './dataset.js'
 import { buildPreviewParams, mountPreview } from './preview.js'
 import { invalidateTemplatePaperMeta } from './print-agent.js'
 import { openPreviewWindow } from './preview-jump.js'
 import { downloadBlob, invalidId, promptDlg, toast } from './util.js'
 import { ht } from './i18n.js'
-import { mountPrintCount } from './print-count.js'
+import { encodeTemplate, envelopeFileName, parseLoadedContent } from '../protect/templateCodec.js'
 
 const CURRENT_TEMPLATE_ID_KEY = 'current_template_id'
 
@@ -37,8 +38,7 @@ export function mountPrintTool (host, opts = {}) {
   let templatesApi = null
   let paramApi = null
   let datasetApi = null
-  let printCountApi = null
-  const showPrintCount = !!(opts.hostPrintCount && typeof opts.hostPrintCount.fetchTables === 'function')
+  let licenseStatus = opts.licenseStatus || { edition: 'free', active: false }
 
   const style = doc.createElement('style')
   style.textContent = PRINT_TOOL_CSS
@@ -69,12 +69,12 @@ export function mountPrintTool (host, opts = {}) {
         <div class="tabs">
           <button type="button" class="tab-button active" data-rtab="param"></button>
           <button type="button" class="tab-button" data-rtab="dataset"></button>
-          <button type="button" class="tab-button" data-rtab="printCount" hidden></button>
+          <button type="button" class="tab-button" data-rtab="conn" hidden></button>
         </div>
         <div class="tab-content">
           <div data-pane="param"></div>
           <div data-pane="dataset" hidden></div>
-          <div data-pane="printCount" hidden></div>
+          <div data-pane="conn" hidden></div>
         </div>
       </div>
     </div>
@@ -90,17 +90,18 @@ export function mountPrintTool (host, opts = {}) {
   const tplPane = wrap.querySelector('[data-pane=tpl]')
   const paramPane = wrap.querySelector('[data-pane=param]')
   const datasetPane = wrap.querySelector('[data-pane=dataset]')
-  const printCountPane = wrap.querySelector('[data-pane=printCount]')
+  const connPane = wrap.querySelector('[data-pane=conn]')
+  const connTab = wrap.querySelector('[data-rtab=conn]')
+  const showConn = hasDatasourcePlugin(opts.datasourcePlugin)
+  if (connTab) connTab.hidden = !showConn
   const previewBox = wrap.querySelector('.npt-preview')
 
   function paintChrome () {
-    const map = { tpl: 'designer.main.tabTemplates', comp: 'designer.main.tabComponents', prop: 'designer.main.tabProperties', param: 'designer.main.tabParam', dataset: 'designer.main.tabDataset', printCount: 'designer.main.tabPrintCount' }
+    const map = { tpl: 'designer.main.tabTemplates', comp: 'designer.main.tabComponents', prop: 'designer.main.tabProperties', param: 'designer.main.tabParam', dataset: 'designer.main.tabDataset', conn: 'designer.main.tabConnections' }
     wrap.querySelectorAll('[data-ltab], [data-rtab]').forEach((b) => {
       const key = map[b.dataset.ltab || b.dataset.rtab]
       if (key) b.textContent = ht(host, key)
     })
-    const pcBtn = wrap.querySelector('[data-rtab=printCount]')
-    if (pcBtn) pcBtn.hidden = !showPrintCount
   }
 
   function setLeft (tab) {
@@ -114,7 +115,7 @@ export function mountPrintTool (host, opts = {}) {
     wrap.querySelectorAll('[data-rtab]').forEach((b) => b.classList.toggle('active', b.dataset.rtab === tab))
     paramPane.hidden = tab !== 'param'
     datasetPane.hidden = tab !== 'dataset'
-    if (printCountPane) printCountPane.hidden = tab !== 'printCount'
+    connPane.hidden = tab !== 'conn'
   }
 
   wrap.querySelectorAll('[data-resize]').forEach((handle) => {
@@ -149,6 +150,7 @@ export function mountPrintTool (host, opts = {}) {
   const preview = mountPreview(host, previewBox, {
     http,
     templateApi,
+    getLicenseStatus () { return licenseStatus },
     getTemplate () { return designer ? designer.getTemplate() : createBlankTemplate() }
   })
 
@@ -213,7 +215,6 @@ export function mountPrintTool (host, opts = {}) {
         }
       }
     }
-    if (showPrintCount && tpl.printCount) payload.printCount = tpl.printCount
     return payload
   }
 
@@ -269,7 +270,8 @@ export function mountPrintTool (host, opts = {}) {
   async function loadId (id) {
     const data = await http.get(withStamp(templateItemUrl(templateApi, id)))
     if (!data || !data.content) throw new Error('模板内容为空')
-    const tpl = JSON.parse(String(data.content).replace(/^\uFEFF/, ''))
+    const raw = await parseLoadedContent(String(data.content).replace(/^\uFEFF/, ''))
+    const tpl = JSON.parse(raw)
     if (!tpl.id) tpl.id = id
     templateId = id
     rememberTemplateId(host, id)
@@ -277,7 +279,6 @@ export function mountPrintTool (host, opts = {}) {
     if (templatesApi) templatesApi.setActive(id)
     if (paramApi) paramApi.paint()
     if (datasetApi) datasetApi.paint()
-    if (printCountApi) printCountApi.paint()
     fire(host, 'template-change', { template: exportTemplate(tpl), id })
   }
 
@@ -360,13 +361,13 @@ export function mountPrintTool (host, opts = {}) {
           try {
             const url = String(templateApi).replace(/\/+$/, '') + '/export/batch'
             const blob = await http.post(url, [fileId], { responseType: 'blob' })
-            downloadBlob(blob instanceof Blob ? blob : new Blob([blob]), fileId)
+            downloadBlob(blob instanceof Blob ? blob : new Blob([blob]), envelopeFileName(fileId))
             return
           } catch {
             toast(host, ht(host, 'designer.messages.exportFailedUseLocal'))
           }
         }
-        downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), fileId)
+        downloadBlob(new Blob([await encodeTemplate(payload)], { type: 'application/octet-stream' }), envelopeFileName(fileId))
       } finally {
         if (templatesApi) templatesApi.setExportBusy(false)
       }
@@ -392,12 +393,12 @@ export function mountPrintTool (host, opts = {}) {
     insertField (field) { return designer.insertField(field) }
   })
 
-  if (showPrintCount && printCountPane) {
-    printCountApi = mountPrintCount(host, printCountPane, {
-      hostPrintCount: opts.hostPrintCount,
-      isAdmin: () => !opts.isAdmin || opts.isAdmin(),
-      getTemplate () { return designer.getTemplate() },
-      setTemplate (tpl) { designer.setTemplate(tpl) }
+  if (showConn) {
+    mountConnections(host, connPane, {
+      datasourcePlugin: opts.datasourcePlugin,
+      onChange () {
+        if (datasetApi && datasetApi.invalidateConnections) datasetApi.invalidateConnections()
+      }
     })
   }
 
@@ -432,6 +433,9 @@ export function mountPrintTool (host, opts = {}) {
     save: onSave,
     preview () { return onToolbar('preview') },
     async loadTemplate (id) { await loadId(id) },
+    setLicenseStatus (status) {
+      licenseStatus = status && typeof status === 'object' ? status : { edition: 'free', active: false }
+    },
     destroy () {
       if (designer && designer.destroy) designer.destroy()
     }

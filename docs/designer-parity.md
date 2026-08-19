@@ -33,7 +33,7 @@
 | 字段增删改选 | `DatasetPanel.vue` | `dataset.js` | 齐 |
 | 四条预览链路 | `PrintDesignerView` 四函数 | `preview.js` + `preview-jump.js`；跳转页挂 `<niqer-report-preview>` | 齐 |
 | 预览工具栏 | `InlineHtml/Pdf` + `useReportPreviewExport` | `preview.js` 关/打印/PDF/xlsx/设置 | 齐 |
-| 打印次数写入 `printCount` | `PrintDesignerView.vue:1502` | `print-count.js` | 齐 |
+| 打印次数写入 `printCount` | `PrintDesignerView.vue:1502` | 已下线（页签/模块删除） | 下线 |
 | i18n zh/en/vi | `packages/report-vue/src/locales` | `print-tool/locales` 原样拷键 | 齐 |
 | isAdmin | plugin `isAdmin` | `element.js` `.isAdmin` | 齐 |
 | tool-web 入口 | Vue 入口 | 设计器/预览打印只挂 WC；登录设置仍是宿主 Vue | 齐 |

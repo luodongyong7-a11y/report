@@ -1,4 +1,5 @@
 import { createBlankTemplate, mountDesigner } from './designer.js'
+import { parseLoadedContent } from '../protect/templateCodec.js'
 
 const TAG = 'niqer-designer'
 const ATTRS = ['src']
@@ -64,7 +65,7 @@ class NiqerDesigner extends (typeof HTMLElement === 'function' ? HTMLElement : c
       if (!tpl && src) {
         const res = await fetch(src)
         if (!res.ok) throw new Error('designer fetch ' + res.status)
-        tpl = await res.json()
+        tpl = JSON.parse(await parseLoadedContent(await res.arrayBuffer()))
         if (gen !== this._gen) return
         this._pending = tpl
       }

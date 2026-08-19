@@ -1,5 +1,5 @@
 import { ht } from './i18n.js'
-import { toast } from './util.js'
+import { bindOverlayEscape, toast } from './util.js'
 
 function esc (s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;')
@@ -55,9 +55,9 @@ export function mountParam (host, pane, ctx) {
       })
       mask.addEventListener('keydown', (ev) => {
         if (ev.key === 'Enter') close(true)
-        if (ev.key === 'Escape') close(false)
       })
       root.appendChild(mask)
+      bindOverlayEscape(host, mask, () => close(false))
       const first = mask.querySelector('input')
       if (first) first.focus()
     })

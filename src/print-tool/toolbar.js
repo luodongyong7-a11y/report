@@ -189,10 +189,9 @@ export function renderToolbar (tpl, selectedEls, ui) {
   html += '</div></div>'
   if (preset === 'custom') {
     html += '<div class="custom-size-inputs">'
-    html += '<input type="number" data-act="mmw" step="0.1" min="0" value="' + esc(mmw) + '" placeholder="' + esc(tr('designer.toolbar.widthMm')) + '">'
-    html += '<span class="unit">mm</span>'
+    html += '<input type="number" data-act="mmw" step="0.1" min="0.1" value="' + esc(mmw) + '" placeholder="' + esc(tr('designer.toolbar.widthMm')) + '">'
     html += '<span class="times">×</span>'
-    html += '<input type="number" data-act="mmh" step="0.1" min="0" value="' + esc(mmh) + '" placeholder="' + esc(tr('designer.toolbar.heightMm')) + '">'
+    html += '<input type="number" data-act="mmh" step="0.1" min="0.1" value="' + esc(mmh) + '" placeholder="' + esc(tr('designer.toolbar.heightMm')) + '">'
     html += '<span class="unit">mm</span>'
     html += '</div>'
   }

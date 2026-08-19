@@ -87,23 +87,61 @@ export const PRINT_TOOL_CSS = VUE_CLONE_CSS + `
   display: flex;
   flex-direction: column;
 }
-.npt-toast {
-  position: absolute;
+.el-message-stack {
+  position: fixed;
+  top: 20px;
   left: 50%;
-  bottom: 24px;
-  transform: translateX(-50%) translateY(12px);
-  background: #111;
-  color: #fff;
-  padding: 8px 14px;
-  border-radius: 6px;
-  opacity: 0;
+  transform: translateX(-50%);
+  z-index: 4000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
   pointer-events: none;
-  z-index: 2200;
-  transition: .16s ease;
+  max-width: calc(100vw - 32px);
 }
-.npt-toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
-.npt-toast[data-kind=err] { background: #b42318; }
-.npt-toast[data-kind=ok] { background: #067647; }
+.el-message {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 320px;
+  max-width: min(560px, calc(100vw - 32px));
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #ebeef5;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-sizing: border-box;
+}
+.el-message--success { background: #f0f9eb; border-color: #e1f3d8; color: #67c23a; }
+.el-message--error { background: #fef0f0; border-color: #fde2e2; color: #f56c6c; }
+.el-message--info { background: #f4f4f5; border-color: #e9e9eb; color: #909399; }
+.el-message__icon { flex: none; margin-top: 2px; }
+.el-message__content {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: inherit;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.el-message__closeBtn {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: #c0c4cc;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 0 0 4px;
+}
+.el-message__closeBtn:hover { color: #909399; }
 .npt-mask {
   position: absolute;
   inset: 0;
@@ -142,13 +180,6 @@ export const PRINT_TOOL_CSS = VUE_CLONE_CSS + `
 }
 .npt-dlg-act button.pri { background: #2563eb; color: #fff; }
 .npt-dlg-act button:disabled { opacity: 0.5; cursor: not-allowed; }
-.print-count-panel { padding: 12px; display: grid; gap: 12px; }
-.print-count-hint { margin: 0; font-size: 12px; line-height: 1.5; color: #6b7280; }
-.print-count-row { display: flex; align-items: center; gap: 10px; }
-.print-count-label { width: 72px; flex-shrink: 0; color: #374151; font-size: 13px; }
-.print-count-select, .print-count-textarea { flex: 1; min-width: 0; }
-.print-count-row--where { align-items: flex-start; }
-.print-count-textarea { min-height: 88px; }
 .npt-html-host { flex: 1; min-height: 0; background: #f0f0f0; }
 .npt-html-frame { width: 100%; height: 100%; min-height: 0; border: 0; background: #fff; }
 .report-html-shell {
@@ -219,6 +250,13 @@ export const PRINT_TOOL_CSS = VUE_CLONE_CSS + `
   background: none;
   box-shadow: none;
   border-bottom: 2px solid transparent;
+}
+.print-designer > .main-content .tabs > .tab-button[hidden] {
+  display: none !important;
+}
+.print-designer > .main-content .right-panel > .tabs > .tab-button {
+  padding: 12px 4px;
+  white-space: nowrap;
 }
 .print-designer > .main-content .left-panel > .tabs > .tab-button.active,
 .print-designer > .main-content .right-panel > .tabs > .tab-button.active {
@@ -679,11 +717,31 @@ export const PRINT_TOOL_CSS = VUE_CLONE_CSS + `
 }
 [data-pane=dataset] .ds-plugin-bar {
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 8px;
+  justify-content: flex-start;
+  margin-bottom: 10px;
+}
+[data-pane=dataset] .ds-plugin-bar .el-button {
+  min-width: 0;
+  height: 32px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+[data-pane=conn] .ds-item-header {
+  cursor: default;
+}
+[data-pane=conn] .new-dataset-card .ds-item-header {
+  cursor: pointer;
+}
+[data-pane=conn] .tiny-text {
+  padding: 0 0 8px;
+  word-break: break-all;
+}
+[data-pane=conn] .ds-meta {
+  flex-wrap: wrap;
 }
 [data-pane=param] > .data-panel,
-[data-pane=dataset] > .data-panel {
+[data-pane=dataset] > .data-panel,
+[data-pane=conn] > .data-panel {
   box-sizing: border-box;
   flex: 1 1 auto;
   min-height: 0;
@@ -821,7 +879,8 @@ export const PRINT_TOOL_CSS = VUE_CLONE_CSS + `
   color: #dc3545;
 }
 .dataset-panel-dataset-dialog .el-dialog,
-.l_dialog_sm .el-dialog {
+.l_dialog_sm .el-dialog,
+.conn-dialog .el-dialog {
   width: 100%;
   background: #fff;
   border-radius: 14px;
@@ -833,6 +892,25 @@ export const PRINT_TOOL_CSS = VUE_CLONE_CSS + `
 }
 .l_dialog_sm {
   width: min(440px, 92vw);
+}
+.conn-dialog {
+  width: min(680px, 92vw);
+}
+.conn-dialog .el-dialog__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.conn-dialog .ds-item-header {
+  cursor: default;
+}
+.conn-dialog .tiny-text {
+  padding: 0 12px 10px;
+  word-break: break-all;
+}
+.conn-form {
+  margin-top: 0;
+  padding-top: 0;
 }
 .dataset-panel-dataset-dialog .label-with-action {
   display: flex;
@@ -1075,6 +1153,17 @@ export const PRINT_TOOL_CSS = VUE_CLONE_CSS + `
   background: #f0f0f0;
   padding: 12px 0;
   box-sizing: border-box;
+}
+.report-pdf-pages--native {
+  padding: 0;
+  overflow: hidden;
+}
+.report-pdf-native {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
 }
 .report-pdf-pages--empty {
   display: flex;

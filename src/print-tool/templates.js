@@ -1,3 +1,5 @@
+import { decodeTemplate, encodeTemplate, envelopeFileName, isEnvelope } from '../protect/templateCodec.js'
+import { normalizeDesignerTemplate } from '../designer/model.js'
 import { REPORT_TEMPLATE_API_BASE, templateItemUrl, withStamp } from './api.js'
 import { ht } from './i18n.js'
 import { isPdfFile, pdfToTemplate } from './import-pdf.js'
@@ -6,7 +8,7 @@ import { confirmDlg, promptDlg, toast, downloadBlob, invalidId } from './util.js
 
 function defaultNameFromFile (fileName) {
   if (!fileName || typeof fileName !== 'string') return ''
-  return fileName.replace(/^.*[/\\]/, '').replace(/\.(json|pdf)$/i, '').trim()
+  return fileName.replace(/^.*[/\\]/, '').replace(/\.(nqt|json|pdf|txt)$/i, '').trim()
 }
 
 function emptyTemplate (id) {
@@ -135,7 +137,7 @@ export function mountTemplates (host, pane, ctx) {
           (hasStoragePlugin(ctx.storagePlugin)
             ? '<button type="button" class="action-btn storage-btn" data-act="storage" title="' + ht(host, 'designer.templatesPanel.storageTitle') + '">' + svg.storage + '</button>'
             : '') +
-          '<input type="file" data-file="imp" accept=".json,.pdf,application/json,application/pdf" style="display:none">'
+          '<input type="file" data-file="imp" accept=".nqt,.pdf,application/octet-stream,application/pdf" style="display:none">'
         : '') +
       '</div>' +
       (rows
@@ -176,27 +178,23 @@ export function mountTemplates (host, pane, ctx) {
     }
   }
 
-  async function importFile (file) {
-    let data
-    try {
-      if (isPdfFile(file)) {
-        data = await pdfToTemplate(await file.arrayBuffer())
-      } else {
-        const parsed = JSON.parse(await file.text())
-        data = parsed
-        if (data && (data.elements || data.paperSize)) {
-          /* 合法对象 */
-        } else if (Array.isArray(data)) {
-          data = { elements: data }
-        } else {
-          toast(host, ht(host, 'designer.templateIo.invalidFormat'), 'err')
-          return
-        }
-      }
-    } catch (err) {
-      toast(host, ht(host, 'designer.templateIo.importError', { msg: err.message }), 'err')
-      return
+  async function readImportData (file, buf) {
+    if (isPdfFile(file)) return pdfToTemplate(buf)
+    const bytes = new Uint8Array(buf)
+    if (!isEnvelope(bytes)) {
+      toast(host, ht(host, 'designer.templateIo.invalidFormat'), 'err')
+      return null
     }
+    const parsed = JSON.parse(await decodeTemplate(bytes))
+    const data = normalizeDesignerTemplate(parsed)
+    if (data && (data.elements || data.paperSize)) return data
+    if (Array.isArray(data)) return { elements: data }
+    toast(host, ht(host, 'designer.templateIo.invalidFormat'), 'err')
+    return null
+  }
+
+  async function importFile (file) {
+    const bufP = file.arrayBuffer()
     const form = await promptDlg(host, ht(host, 'designer.templateIo.importTitle'), [
       { key: 'id', label: ht(host, 'designer.templateIo.nameLabel'), value: defaultNameFromFile(file.name), placeholder: ht(host, 'designer.templateIo.namePlaceholder') }
     ], { requireKeys: ['id'] })
@@ -211,6 +209,14 @@ export function mountTemplates (host, pane, ctx) {
       return
     }
     if (!(await overwriteOk(name))) return
+    let data
+    try {
+      data = await readImportData(file, await bufP)
+    } catch (err) {
+      toast(host, ht(host, 'designer.templateIo.importError', { msg: err.message }), 'err')
+      return
+    }
+    if (!data) return
     try {
       const payload = Object.assign({}, data, { id: name })
       await ctx.http.put(templateItemUrl(api(), name), { content: JSON.stringify(payload, null, 2) })
@@ -229,14 +235,26 @@ export function mountTemplates (host, pane, ctx) {
       const url = String(api()).replace(/\/+$/, '') + '/export/batch'
       const blob = await ctx.http.post(url, state.selected, { responseType: 'blob' })
       const isSingle = state.selected.length === 1
-      const file = isSingle ? state.selected[0] : ('templates_' + Date.now() + '.zip')
-      const type = isSingle ? 'application/json' : 'application/zip'
+      const file = isSingle ? envelopeFileName(state.selected[0]) : ('templates_' + Date.now() + '.zip')
+      const type = isSingle ? 'application/octet-stream' : 'application/zip'
       downloadBlob(blob instanceof Blob ? blob : new Blob([blob], { type }), file)
       state.selected = []
       state.anchor = -1
       toast(host, ht(host, 'report.template.exportSuccess'), 'ok')
     } catch (err) {
-      toast(host, ht(host, 'report.template.exportFailed') + ': ' + (err.message || err), 'err')
+      try {
+        for (const id of state.selected) {
+          const data = await ctx.http.get(templateItemUrl(api(), id))
+          if (!data || !data.content) throw new Error(id)
+          const bytes = await encodeTemplate(JSON.parse(data.content))
+          downloadBlob(new Blob([bytes], { type: 'application/octet-stream' }), envelopeFileName(id))
+        }
+        state.selected = []
+        state.anchor = -1
+        toast(host, ht(host, 'report.template.exportSuccess'), 'ok')
+      } catch {
+        toast(host, ht(host, 'report.template.exportFailed') + ': ' + (err.message || err), 'err')
+      }
     } finally {
       state.exportBusy = false
       syncChrome()

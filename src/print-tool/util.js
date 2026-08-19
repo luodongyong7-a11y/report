@@ -1,5 +1,24 @@
 import { ht } from './i18n.js'
 
+const OVERLAY_SEL = '.el-overlay.npt-mask, .npt-mask, .npt-preview.el-overlay:not([hidden])'
+
+export function bindOverlayEscape (host, mask, close) {
+  const view = (host.ownerDocument && host.ownerDocument.defaultView) || globalThis
+  const onKey = (ev) => {
+    if (ev.key !== 'Escape' && ev.key !== 'Esc' && ev.keyCode !== 27) return
+    if (!mask.isConnected) return
+    if (mask.hidden) return
+    const root = host.shadowRoot || host
+    const list = root.querySelectorAll(OVERLAY_SEL)
+    if (list.length && list[list.length - 1] !== mask) return
+    ev.preventDefault()
+    ev.stopPropagation()
+    close()
+  }
+  view.addEventListener('keydown', onKey, true)
+  return () => view.removeEventListener('keydown', onKey, true)
+}
+
 export function extractPlaceholders (text) {
   const set = new Set()
   String(text || '').replace(/#\{([^}]+)\}/g, (_, name) => {
@@ -101,19 +120,35 @@ export function downloadBlob (blob, fileName) {
   setTimeout(() => URL.revokeObjectURL(url), 60000)
 }
 
+const TOAST_ICON = {
+  success: '<svg class="el-message__icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm3.2 5.2-3.7 3.7a.5.5 0 0 1-.7 0L4.8 8.9a.5.5 0 0 1 .7-.7l1.65 1.64 3.35-3.34a.5.5 0 1 1 .7.7z"/></svg>',
+  error: '<svg class="el-message__icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm2.3 4.7a.5.5 0 0 1 0 .7L8.7 8l1.6 1.6a.5.5 0 1 1-.7.7L8 8.7 6.4 10.3a.5.5 0 1 1-.7-.7L7.3 8 5.7 6.4a.5.5 0 0 1 .7-.7L8 7.3l1.6-1.6a.5.5 0 0 1 .7 0z"/></svg>',
+  info: '<svg class="el-message__icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 3.2a.8.8 0 1 1 0 1.6.8.8 0 0 1 0-1.6zM7.4 7h1.2v4.6H7.4V7z"/></svg>'
+}
+
 export function toast (host, message, kind) {
   const root = host.shadowRoot || host
-  let box = root.querySelector('.npt-toast')
-  if (!box) {
-    box = host.ownerDocument.createElement('div')
-    box.className = 'npt-toast'
-    root.appendChild(box)
+  const doc = host.ownerDocument
+  const k = kind === 'err' ? 'error' : kind === 'ok' ? 'success' : 'info'
+  let stack = root.querySelector('.el-message-stack')
+  if (!stack) {
+    stack = doc.createElement('div')
+    stack.className = 'el-message-stack'
+    root.appendChild(stack)
   }
-  box.textContent = message
-  box.dataset.kind = kind || 'info'
-  box.classList.add('on')
-  clearTimeout(box._t)
-  box._t = setTimeout(() => box.classList.remove('on'), 2600)
+  const item = doc.createElement('div')
+  item.className = 'el-message el-message--' + k
+  item.innerHTML = TOAST_ICON[k] + '<p class="el-message__content"></p><button type="button" class="el-message__closeBtn">×</button>'
+  item.querySelector('.el-message__content').textContent = String(message == null ? '' : message)
+  const drop = () => {
+    item.remove()
+    if (stack && !stack.children.length) stack.remove()
+  }
+  item.querySelector('.el-message__closeBtn').addEventListener('click', drop)
+  stack.appendChild(item)
+  let timer = setTimeout(drop, k === 'error' ? 8000 : 3000)
+  item.addEventListener('mouseenter', () => { clearTimeout(timer) })
+  item.addEventListener('mouseleave', () => { timer = setTimeout(drop, 2000) })
 }
 
 export function confirmDlg (host, message) {
@@ -122,7 +157,9 @@ export function confirmDlg (host, message) {
     const mask = host.ownerDocument.createElement('div')
     mask.className = 'npt-mask'
     mask.innerHTML = '<div class="npt-dlg"><p>' + String(message).replace(/</g, '&lt;') + '</p><div class="npt-dlg-act"><button type="button" data-k="n">' + ht(host, 'cancel') + '</button><button type="button" data-k="y" class="pri">' + ht(host, 'confirm') + '</button></div></div>'
+    let unbindEsc = () => {}
     const close = (ok) => {
+      unbindEsc()
       mask.remove()
       resolve(ok)
     }
@@ -132,6 +169,7 @@ export function confirmDlg (host, message) {
       if (ev.target.dataset.k === 'y') close(true)
     })
     root.appendChild(mask)
+    unbindEsc = bindOverlayEscape(host, mask, () => close(false))
   })
 }
 
@@ -154,13 +192,15 @@ export function promptDlg (host, title, fields, opts) {
         return !el || !String(el.value || '').trim()
       })
     }
+    let unbindEsc = () => {}
     const close = (ok) => {
+      if (ok && yes.disabled) return
+      unbindEsc()
       if (!ok) {
         mask.remove()
         resolve(null)
         return
       }
-      if (yes.disabled) return
       const out = {}
       mask.querySelectorAll('[data-f]').forEach((el) => { out[el.dataset.f] = el.value })
       mask.remove()
@@ -174,9 +214,9 @@ export function promptDlg (host, title, fields, opts) {
     mask.addEventListener('input', syncDisabled)
     mask.addEventListener('keydown', (ev) => {
       if (ev.key === 'Enter') close(true)
-      if (ev.key === 'Escape') close(false)
     })
     root.appendChild(mask)
+    unbindEsc = bindOverlayEscape(host, mask, () => close(false))
     syncDisabled()
     const first = mask.querySelector('input')
     if (first) first.focus()

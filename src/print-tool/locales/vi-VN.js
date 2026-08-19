@@ -9,7 +9,7 @@ export default {
     "template": {
       "saveTitle": "Lưu mẫu",
       "codeLabel": "Mã mẫu (tên tệp):",
-      "codePlaceholder": "Ví dụ: order.json",
+      "codePlaceholder": "Ví dụ: order",
       "nameCn": "Tên tiếng Trung:",
       "nameCnPlaceholder": "Hiển thị khi giao diện là tiếng Trung",
       "nameEn": "Tên tiếng Anh:",
@@ -173,8 +173,8 @@ export default {
       "customSize": "Tùy chỉnh",
       "widthCm": "Rộng (cm)",
       "heightCm": "Cao (cm)",
-      "widthMm": "Rộng (mm)",
-      "heightMm": "Cao (mm)",
+      "widthMm": "Rộng",
+      "heightMm": "Cao",
       "portrait": "Dọc",
       "landscape": "Ngang",
       "kind": "Loại",
@@ -272,22 +272,15 @@ export default {
       "symAztec": "Aztec",
       "tabParam": "Tham số",
       "tabDataset": "Tập dữ liệu",
-      "tabPrintCount": "Số lần in"
+      "tabConnections": "Kết nối"
+    },
+    "license": {
+      "xlsxDenied": "Xuất Excel cần kích hoạt bản tính phí"
     },
     "newTemplate": {
       "title": "Mẫu mới",
       "idLabel": "ID mẫu:",
       "idPlaceholder": "Nhập ID mẫu (định danh duy nhất)"
-    },
-    "printCount": {
-      "hint": "Ghi vào mẫu printCount.table và whereSql tùy chọn (chỗ giữ #{'{'}tenThamSo{'}'} khớp với tập dữ liệu). Khi điều kiện để trống, máy chủ dùng tham số của yêu cầu xem trước (trừ metadata mẫu), chuyển tên tham số sang cột snake_case để tự tạo điều kiện bằng AND. Không có trong phản hồi xem trước.",
-      "enable": "Bật",
-      "yes": "Có",
-      "no": "Không",
-      "table": "Bảng nghiệp vụ",
-      "tablePlaceholder": "Chọn bảng chính",
-      "condition": "Điều kiện",
-      "wherePlaceholder": "Đoạn WHERE viết tay, chỗ giữ giống tab Tham số (vd id = #{'{'}orderId{'}'}); để trống thì máy chủ tự tạo theo tham số xem trước"
     },
     "messages": {
       "saveBeforePreview": "Vui lòng lưu mẫu trước khi xem trước",
@@ -438,6 +431,8 @@ export default {
       "manageConnections": "Quản lý kết nối",
       "connectionsTitle": "Nguồn dữ liệu",
       "newConnection": "Thêm kết nối",
+      "addConnectionCard": "+ Thêm kết nối",
+      "confirmDeleteConnection": "Xóa kết nối {name}?",
       "noConnections": "Chưa có nguồn dữ liệu, hãy thêm kết nối JDBC.",
       "connId": "Mã",
       "connName": "Tên",

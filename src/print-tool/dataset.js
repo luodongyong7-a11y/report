@@ -1,9 +1,8 @@
 // 禁止: schema?dbName、Excel、虚构后端代理
 import { REPORT_DATASET_API_FETCH, REPORT_SQL_PARSE, REPORT_SQL_SCHEMA } from './api.js'
-import { canManageDatasource, openDatasourceDialog } from './datasource-ui.js'
 import { ht } from './i18n.js'
 import { mountSqlEditor } from './sql-editor.js'
-import { confirmDlg, formatReportSql, toast } from './util.js'
+import { bindOverlayEscape, confirmDlg, formatReportSql, toast } from './util.js'
 
 function nextVar (dataset) {
   let i = 1
@@ -163,9 +162,6 @@ export function mountDataset (host, pane, ctx) {
     const keepY = scroller ? scroller.scrollTop : 0
     let html = '<div class="data-panel" tabindex="-1" data-ds-root>'
     html += '<div class="panel-content">'
-    if (canManageDatasource(ctx.datasourcePlugin)) {
-      html += '<div class="ds-plugin-bar"><button type="button" class="link-btn" data-act="conns">' + esc(ht(host, 'reportDesigner.dataset.manageConnections')) + '</button></div>'
-    }
     if (admin) {
       html += '<div class="ds-item new-dataset-card" data-act="add"><div class="ds-item-header"><div class="ds-title"><span class="ds-name">' + esc(ht(host, 'reportDesigner.dataset.addDatasetCard')) + '</span><span class="ds-badges"><span class="badge">SQL/API</span></span></div><div class="ds-meta"><span class="chev">▸</span></div></div></div>'
     }
@@ -613,9 +609,11 @@ export function mountDataset (host, pane, ctx) {
       else toast(host, ht(host, 'reportDesigner.dataset.parseFieldSuccess'), 'ok')
     }
 
+    let unbindEsc = () => {}
     function closeEditor () {
       if (closed) return
       closed = true
+      unbindEsc()
       sqlEditor.destroy()
       state.editorOpen = false
       mask.remove()
@@ -654,12 +652,7 @@ export function mountDataset (host, pane, ctx) {
         if (saveBtn && mask.isConnected) saveBtn.disabled = false
       }
     })
-    mask.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Escape') {
-        ev.preventDefault()
-        closeEditor()
-      }
-    })
+    unbindEsc = bindOverlayEscape(host, mask, closeEditor)
   }
 
   function openFieldForm (value) {
@@ -677,7 +670,9 @@ export function mountDataset (host, pane, ctx) {
         '<button type="button" class="el-button el-button--default" data-k="n">' + esc(ht(host, 'cancel')) + '</button>' +
         '<button type="button" class="el-button el-button--primary" data-k="y">' + esc(ht(host, 'save')) + '</button>' +
         '</div></div></div>'
+      let unbindEsc = () => {}
       const close = (ok) => {
+        unbindEsc()
         state.editorOpen = false
         if (!ok) {
           mask.remove()
@@ -694,9 +689,9 @@ export function mountDataset (host, pane, ctx) {
       })
       mask.addEventListener('keydown', (ev) => {
         if (ev.key === 'Enter') close(true)
-        if (ev.key === 'Escape') close(false)
       })
       root.appendChild(mask)
+      unbindEsc = bindOverlayEscape(host, mask, () => close(false))
       const first = mask.querySelector('input')
       if (first) first.focus()
     })
@@ -705,11 +700,6 @@ export function mountDataset (host, pane, ctx) {
   pane.addEventListener('click', async (ev) => {
     const actBtn = ev.target.closest('[data-act]')
     const act = actBtn && pane.contains(actBtn) ? actBtn.dataset.act : ''
-    if (act === 'conns') {
-      const changed = await openDatasourceDialog(host, ctx.datasourcePlugin)
-      if (changed) state.connectionsLoaded = false
-      return
-    }
     if (act === 'add' || ev.target.closest('.new-dataset-card')) {
       openEditor('')
       return
@@ -886,6 +876,10 @@ export function mountDataset (host, pane, ctx) {
   }
   doc.addEventListener('keydown', onCopyCapture, true)
 
+  function invalidateConnections () {
+    state.connectionsLoaded = false
+  }
+
   paint()
-  return { paint }
+  return { paint, invalidateConnections }
 }

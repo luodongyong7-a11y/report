@@ -31,7 +31,16 @@ class NiqerReportPreview extends (typeof HTMLElement === 'function' ? HTMLElemen
     this._fetcher = null
     this._getAuthHeaders = null
     this._apiParams = null
+    this._licenseStatus = { edition: 'free', active: false }
     this._gen = 0
+  }
+
+  get licenseStatus () { return this._licenseStatus }
+  set licenseStatus (v) { this.setLicenseStatus(v) }
+
+  setLicenseStatus (status) {
+    this._licenseStatus = status && typeof status === 'object' ? status : { edition: 'free', active: false }
+    if (this._api && typeof this._api.refreshLicense === 'function') this._api.refreshLicense()
   }
 
   get apiBase () { return this.getAttribute('api-base') || '/report' }
@@ -113,7 +122,8 @@ class NiqerReportPreview extends (typeof HTMLElement === 'function' ? HTMLElemen
       templateApi: this.templateApi,
       kind: this.kind,
       hideHeader: this.hideHeader,
-      apiParams: this._apiParams
+      apiParams: this._apiParams,
+      getLicenseStatus: () => this._licenseStatus
     })
     try {
       await this._api.start(this.previewKey, this._apiParams ? { apiParams: this._apiParams } : null)

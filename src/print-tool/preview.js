@@ -1,6 +1,7 @@
+import { licenseIsPro } from '../protect/licenseVerify.js'
 import { PRINT_MODE_MANAGE, PRINT_MODE_NORMAL, PRINT_MODE_PREVIEW } from './api.js'
 import { ht } from './i18n.js'
-import { previewDatasetPayload, toast } from './util.js'
+import { bindOverlayEscape, previewDatasetPayload, toast } from './util.js'
 import { mountPdfViewer } from './pdf-viewer.js'
 import { createPreviewShell } from './preview-shell.js'
 import { mountPrintSettingsDialog } from './print-settings-ui.js'
@@ -127,14 +128,19 @@ function showViewer (box, blob, onError) {
 }
 
 export function mountPreview (host, box, ctx) {
-  const shell = createPreviewShell({ http: ctx.http, templateApi: ctx.templateApi })
+  const shell = createPreviewShell({ http: ctx.http, templateApi: ctx.templateApi, getLicenseStatus: ctx.getLicenseStatus })
   const settings = mountPrintSettingsDialog(host, {
     http: ctx.http,
     getPaperMeta () { return shell.state.paperMeta }
   })
 
+  let unbindEsc = null
+
   function close () {
-    window.removeEventListener('keydown', onEsc)
+    if (unbindEsc) {
+      unbindEsc()
+      unbindEsc = null
+    }
     box.hidden = true
     const body = box.querySelector('[data-preview-body]')
     if (body && body._viewer) {
@@ -143,14 +149,6 @@ export function mountPreview (host, box, ctx) {
     }
     shell.reset()
     box.innerHTML = ''
-  }
-
-  function onEsc (e) {
-    if (e.key !== 'Escape' && e.key !== 'Esc' && e.keyCode !== 27) return
-    const root = host.shadowRoot || host
-    const settingsOpen = root.querySelector('.ps-mask:not([hidden])')
-    if (settingsOpen) return
-    close()
   }
 
   function actBtn (act, label, extra) {
@@ -167,6 +165,7 @@ export function mountPreview (host, box, ctx) {
     const canPrintByMode = printMode === PRINT_MODE_NORMAL || printMode === PRINT_MODE_MANAGE
     const showPrint = kind === 'html' ? allowPrintFlag : (canPrintByMode || allowPrintFlag)
     const showExport = kind === 'html' ? true : allowExportFlag
+    const showXlsx = showExport && licenseIsPro(ctx.getLicenseStatus && ctx.getLicenseStatus())
     const showSettings = kind === 'pdf'
     box.className = 'npt-preview el-overlay'
     box.hidden = false
@@ -179,7 +178,7 @@ export function mountPreview (host, box, ctx) {
       '<div class="inline-report-toolbar__actions">' +
       (showSettings ? actBtn('settings', ht(host, 'designer.preview.printSettings')) : '') +
       (showExport ? actBtn('pdf', ht(host, 'designer.preview.downloadPdf')) : '') +
-      (showExport ? actBtn('xlsx', ht(host, 'designer.preview.downloadExcel')) : '') +
+      (showXlsx ? actBtn('xlsx', ht(host, 'designer.preview.downloadExcel')) : '') +
       (showPrint ? actBtn('print', ht(host, 'designer.preview.print'), 'el-button--primary') : '') +
       actBtn('close', ht(host, 'close')) +
       '</div></div>' +
@@ -192,8 +191,10 @@ export function mountPreview (host, box, ctx) {
     if (printBtn) printBtn.disabled = true
     let armed = false
     let htmlText = ''
-    window.removeEventListener('keydown', onEsc)
-    window.addEventListener('keydown', onEsc)
+    if (unbindEsc) unbindEsc()
+    unbindEsc = bindOverlayEscape(host, box, close)
+    box.tabIndex = -1
+    try { box.focus() } catch { /* ignore */ }
 
     function syncPrintDisabled () {
       if (!printBtn) return
@@ -257,10 +258,11 @@ export function mountPreview (host, box, ctx) {
         setBusy(printBtn, true)
         try {
           let ok = false
-          if (kind !== 'html' && canPrintByMode && armed) ok = await shell.printFullCached(printParams)
+          if (kind === 'html') ok = await shell.printHtml(htmlText)
+          else if (canPrintByMode && armed) ok = await shell.printFullCached(printParams)
           else {
             ok = await shell.ensureFullAndPrint(printParams)
-            if (ok && kind !== 'html' && canPrintByMode) armed = true
+            if (ok && canPrintByMode) armed = true
           }
           if (!ok) toast(host, ht(host, 'designer.preview.noData'))
         } catch (err) {
@@ -279,7 +281,7 @@ export function mountPreview (host, box, ctx) {
 }
 
 export function mountPreviewPage (host, box, ctx) {
-  const shell = createPreviewShell({ http: ctx.http, templateApi: ctx.templateApi })
+  const shell = createPreviewShell({ http: ctx.http, templateApi: ctx.templateApi, getLicenseStatus: ctx.getLicenseStatus })
   const settings = mountPrintSettingsDialog(host, {
     http: ctx.http,
     getPaperMeta () { return shell.state.paperMeta }
@@ -303,7 +305,7 @@ export function mountPreviewPage (host, box, ctx) {
         '<div class="preview-actions">' +
         '<button type="button" class="action-button" data-act="settings">' + ht(host, 'designer.preview.printSettings') + '</button>' +
         (opts.showExport ? '<button type="button" class="action-button" data-act="pdf">' + ht(host, 'designer.preview.downloadPdf') + '</button>' : '') +
-        (opts.showExport ? '<button type="button" class="action-button" data-act="xlsx">' + ht(host, 'designer.preview.downloadExcel') + '</button>' : '') +
+        (opts.showXlsx ? '<button type="button" class="action-button" data-act="xlsx">' + ht(host, 'designer.preview.downloadExcel') + '</button>' : '') +
         (opts.showPrint ? '<button type="button" class="action-button action-button--primary" data-act="print">' + ht(host, 'designer.preview.print') + '</button>' : '') +
         '<button type="button" class="action-button" data-act="close">' + ht(host, 'close') + '</button>' +
         '</div></div>') +
@@ -321,6 +323,7 @@ export function mountPreviewPage (host, box, ctx) {
   async function doPrint () {
     if (!showPrint || !exportApiParams) return false
     if (shell.state.printBusy) return false
+    if (kind === 'html') return shell.printHtml(htmlText)
     const printParams = Object.assign({}, exportApiParams, { printMode: canPrintByMode ? sessionPrintMode : PRINT_MODE_PREVIEW })
     let ok = false
     if (canPrintByMode && armed) ok = await shell.printFullCached(printParams)
@@ -334,7 +337,7 @@ export function mountPreviewPage (host, box, ctx) {
   async function start (previewKey, extra) {
     const key = previewKey || previewKeyFromLocation()
     const direct = extra && extra.apiParams && typeof extra.apiParams === 'object' ? extra.apiParams : (ctx.apiParams || null)
-    paintChrome({ showExport: false, showPrint: false, hideHeader, status: ht(host, 'designer.preview.loading') })
+    paintChrome({ showExport: false, showXlsx: false, showPrint: false, hideHeader, status: ht(host, 'designer.preview.loading') })
     let payload = null
     if (direct && direct.templateId) {
       payload = { apiParams: direct }
@@ -367,7 +370,13 @@ export function mountPreviewPage (host, box, ctx) {
     if (payload.hideHeader === true || ctx.hideHeader) hideHeader = true
     const autoPrint = payload.autoPrint === true
     exportApiParams = Object.assign({}, apiParams, { printMode: PRINT_MODE_PREVIEW })
-    paintChrome({ showExport: true, showPrint, hideHeader, status: ht(host, 'designer.preview.loading') })
+    paintChrome({
+      showExport: true,
+      showXlsx: licenseIsPro(ctx.getLicenseStatus && ctx.getLicenseStatus()),
+      showPrint,
+      hideHeader,
+      status: ht(host, 'designer.preview.loading')
+    })
     armed = false
     htmlText = ''
     try {
@@ -450,11 +459,35 @@ export function mountPreviewPage (host, box, ctx) {
   window.addEventListener('message', onMessage)
   window.addEventListener('keydown', onKey)
 
+  function refreshLicense () {
+    const actions = box.querySelector('.preview-actions')
+    if (!actions) return
+    const pro = licenseIsPro(ctx.getLicenseStatus && ctx.getLicenseStatus())
+    let btn = actions.querySelector('[data-act=xlsx]')
+    if (pro && !btn) {
+      const doc = host.ownerDocument
+      btn = doc.createElement('button')
+      btn.type = 'button'
+      btn.className = 'action-button'
+      btn.dataset.act = 'xlsx'
+      btn.textContent = ht(host, 'designer.preview.downloadExcel')
+      const pdf = actions.querySelector('[data-act=pdf]')
+      const before = pdf && pdf.nextSibling
+        ? pdf.nextSibling
+        : (actions.querySelector('[data-act=print]') || actions.querySelector('[data-act=close]'))
+      if (before) actions.insertBefore(btn, before)
+      else actions.appendChild(btn)
+    } else if (!pro && btn) {
+      btn.remove()
+    }
+  }
+
   return {
     start,
     print: doPrint,
     downloadPdf: () => exportApiParams ? shell.downloadPdf(exportApiParams) : Promise.resolve(),
     downloadXlsx: () => exportApiParams ? shell.downloadXlsx(exportApiParams) : Promise.resolve(),
+    refreshLicense,
     destroy () {
       window.removeEventListener('message', onMessage)
       window.removeEventListener('keydown', onKey)
