@@ -229,7 +229,7 @@ export function mountDesigner (host, opts = {}) {
     editingId: '',
     editBox: null,
     borderDraft: { width: 1, style: 'solid', color: '#000000' },
-    borderMenuOpen: false,
+    tbMenu: '',
     holdBorderColor: false
   }
   hist.reset(state.tpl)
@@ -307,29 +307,38 @@ export function mountDesigner (host, opts = {}) {
   }
 
   function paintToolbar () {
-    if (bar.querySelector('.border-split.is-open')) state.borderMenuOpen = true
-    const openMenus = [...bar.querySelectorAll('details[data-menu][open]')].map((d) => d.dataset.menu)
+    if (state.tbMenu === 'border' && !state.selected.size) state.tbMenu = ''
     bar.classList.add('toolbar')
     bar.innerHTML = renderToolbar(state.tpl, selectedEls(), {
       t: (key) => ht(host, key),
       borderDraft: state.borderDraft,
-      borderMenuOpen: state.borderMenuOpen && state.selected.size > 0
+      tbMenu: state.tbMenu
     }) + extraToolbarHtml
-    openMenus.forEach((name) => {
-      const menu = bar.querySelector('details[data-menu="' + name + '"]')
-      if (menu) menu.setAttribute('open', '')
+  }
+
+  function closeTbMenus () {
+    state.tbMenu = ''
+    state.holdBorderColor = false
+    bar.querySelectorAll('.tb-drop.is-open').forEach((el) => el.classList.remove('is-open'))
+  }
+
+  function openTbMenu (name) {
+    if (name === 'border' && !state.selected.size) return
+    state.tbMenu = state.tbMenu === name ? '' : name
+    bar.querySelectorAll('.tb-drop[data-drop]').forEach((el) => {
+      el.classList.toggle('is-open', el.dataset.drop === state.tbMenu)
     })
   }
 
-  function closeBorderMenu () {
-    state.borderMenuOpen = false
-    const split = bar.querySelector('.border-split')
-    if (split) split.classList.remove('is-open')
+  function eventIn (el, ev) {
+    if (!el) return false
+    const path = ev.composedPath ? ev.composedPath() : [ev.target]
+    return path.indexOf(el) >= 0
   }
 
   function applyBorderPen (commitNow, refreshBar) {
     state.borderDraft = readBorderDraft(bar)
-    state.borderMenuOpen = true
+    state.tbMenu = 'border'
     if (applyBorderDraft(state.tpl, state.selected, state.borderDraft)) {
       if (commitNow) {
         hist.push(state.tpl)
@@ -561,8 +570,10 @@ export function mountDesigner (host, opts = {}) {
     html += '<div class="property-item"><input type="number" data-p="width" value="' + el.width + '" title="' + escAttr(ht(host, 'designer.properties.hoverWidth')) + '"></div>'
     html += '<div class="property-item"><input type="number" data-p="height" value="' + el.height + '" title="' + escAttr(ht(host, 'designer.properties.hoverHeight')) + '"></div>'
     if (textish) {
-      html += '<div class="property-item property-nullish-item property-block-top"><div class="nullish-row">' + switchHtml('tolerateNullish', el.tolerateNullish !== false, ht(host, 'designer.properties.hoverTolerateNullish')) + '</div></div>'
-      html += '<div class="property-item property-nullish-item"><div class="nullish-row"><span class="inline-label">' + ht(host, 'designer.properties.shrinkToFit') + '</span>' + switchHtml('shrinkToFit', el.shrinkToFit === true, ht(host, 'designer.properties.hoverShrinkToFit')) + '</div></div>'
+      html += '<div class="property-item property-nullish-item property-block-top"><div class="nullish-row">' +
+        switchHtml('tolerateNullish', el.tolerateNullish !== false, ht(host, 'designer.properties.hoverTolerateNullish')) +
+        switchHtml('shrinkToFit', el.shrinkToFit === true, ht(host, 'designer.properties.hoverShrinkToFit')) +
+        '</div></div>'
     }
     html += '<div class="property-item property-block-top"><input type="text" class="readonly-input" value="' + escAttr(el.id) + '" readonly disabled title="' + escAttr(ht(host, 'designer.properties.hoverElementId')) + '"></div>'
     html += '<div class="property-item"><input type="text" class="readonly-input" value="' + escAttr(el.groupId || ht(host, 'designer.properties.ungrouped')) + '" readonly disabled title="' + escAttr(ht(host, 'designer.properties.hoverGroupId')) + '"></div>'
@@ -1597,6 +1608,10 @@ export function mountDesigner (host, opts = {}) {
     }
     if (ev.key === 'Escape') {
       ev.preventDefault()
+      if (state.tbMenu) {
+        closeTbMenus()
+        return
+      }
       selectOnly(null, false)
       return
     }
@@ -1640,19 +1655,6 @@ export function mountDesigner (host, opts = {}) {
 
   bar.addEventListener('change', (ev) => {
     const act = ev.target.dataset.act
-    if (act === 'preset') {
-      if (ev.target.value === 'custom' || ev.target.value === 'CUSTOM') {
-        state.tpl.paperPreset = 'CUSTOM'
-        paintToolbar()
-        return
-      }
-      applyPaperPreset(state.tpl, ev.target.value, state.tpl.paperOrientation)
-      commit()
-    }
-    if (act === 'kind') {
-      applyPrintKind(state.tpl, ev.target.value)
-      commit()
-    }
     if (act === 'summary') {
       state.tpl.summaryEnabled = ev.target.checked
       commit()
@@ -1718,11 +1720,26 @@ export function mountDesigner (host, opts = {}) {
     if (act === 'centerv' && centerV(state.tpl, ids)) commit()
     if (act === 'space' && spaceAround(state.tpl, ids)) commit()
     if (act === 'syncw' && syncColumnWidths(state.tpl, ids)) commit()
-    if (act === 'border-more') {
-      if (!ids.size) return
-      state.borderMenuOpen = !state.borderMenuOpen
-      const split = bar.querySelector('.border-split')
-      if (split) split.classList.toggle('is-open', state.borderMenuOpen)
+    if (act === 'menu-kind' || act === 'menu-paper' || act === 'menu-print' || act === 'menu-border') {
+      openTbMenu(act.slice(5))
+      return
+    }
+    if (act === 'kind') {
+      applyPrintKind(state.tpl, btn.dataset.val)
+      closeTbMenus()
+      commit()
+      return
+    }
+    if (act === 'preset') {
+      const picked = btn.dataset.val
+      closeTbMenus()
+      if (picked === 'custom' || picked === 'CUSTOM') {
+        state.tpl.paperPreset = 'CUSTOM'
+        paintToolbar()
+        return
+      }
+      applyPaperPreset(state.tpl, picked, state.tpl.paperOrientation)
+      commit()
       return
     }
     if (act === 'bw-pick' || act === 'bs-pick') {
@@ -1734,6 +1751,7 @@ export function mountDesigner (host, opts = {}) {
     }
     if (act === 'border-toggle') {
       if (!ids.size) return
+      closeTbMenus()
       state.borderDraft = readBorderDraft(bar)
       if (toggleMainBorder(state.tpl, ids, state.borderDraft)) commit()
       return
@@ -1741,20 +1759,20 @@ export function mountDesigner (host, opts = {}) {
     if (act === 'border-all') {
       if (!ids.size) return
       state.borderDraft = readBorderDraft(bar)
-      state.borderMenuOpen = true
+      closeTbMenus()
       if (setBorderOn(state.tpl, ids, state.borderDraft)) commit()
       return
     }
     if (act === 'border-none') {
       if (!ids.size) return
-      state.borderMenuOpen = true
+      closeTbMenus()
       if (setBorderOff(state.tpl, ids)) commit()
       return
     }
     if (act === 'border-top' || act === 'border-right' || act === 'border-bottom' || act === 'border-left') {
       if (!ids.size) return
       state.borderDraft = readBorderDraft(bar)
-      state.borderMenuOpen = true
+      closeTbMenus()
       if (toggleBorderSide(state.tpl, ids, state.borderDraft, act.slice('border-'.length))) commit()
       return
     }
@@ -1800,25 +1818,25 @@ export function mountDesigner (host, opts = {}) {
       commit()
     }
     if (act === 'preview' || act === 'print' || act === 'save' || act === 'frontend-print' || act === 'pdf-print' || act === 'frontend-jump' || act === 'pdf-jump') {
+      closeTbMenus()
       paintToolbar()
     }
     if (typeof opts.onToolbarClick === 'function') opts.onToolbarClick(act, ev)
   })
 
-  doc.addEventListener('click', (ev) => {
-    bar.querySelectorAll('details[data-menu][open]').forEach((menu) => {
-      if (menu.contains(ev.target)) return
-      menu.removeAttribute('open')
-    })
+  doc.addEventListener('pointerdown', (ev) => {
+    if (!state.tbMenu) return
     if (state.holdBorderColor) return
-    if (state.borderMenuOpen && ev.target.closest && !ev.target.closest('.border-split')) closeBorderMenu()
+    const open = bar.querySelector('.tb-drop.is-open')
+    if (eventIn(open, ev)) return
+    closeTbMenus()
   }, true)
 
-  bar.addEventListener('mousedown', (ev) => {
+  bar.addEventListener('pointerdown', (ev) => {
     const color = ev.target.closest && ev.target.closest('[data-act=bc]')
     if (color && bar.contains(color)) {
       state.holdBorderColor = true
-      state.borderMenuOpen = true
+      state.tbMenu = 'border'
     }
   }, true)
 

@@ -67,6 +67,16 @@ function fillFaceIcon (color, mixed) {
   return '<svg width="14" height="12" viewBox="0 0 14 12"><rect x="0.5" y="0.5" width="13" height="11" rx="1" fill="' + esc(color || '#ffffff') + '" stroke="#9ca3af"/></svg>'
 }
 
+function dropCaret () {
+  return '<span class="tb-drop__caret" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M2.2 3.4L5 6.4L7.8 3.4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>'
+}
+
+function dropItem (act, val, label, on) {
+  return '<button type="button" class="tb-drop__item' + (on ? ' is-on' : '') + '" data-act="' + esc(act) + '" data-val="' + esc(val) + '">' +
+    '<span class="tb-drop__check">' + (on ? '✓' : '') + '</span>' +
+    '<span>' + esc(label) + '</span></button>'
+}
+
 function firstStyle (els) {
   const el = els[0]
   return (el && el.style) || {}
@@ -143,7 +153,12 @@ export function renderToolbar (tpl, selectedEls, ui) {
   const faceMixed = borderState === 'mixed'
   const borderIcon = faceMixed ? ICON.borderMixed : borderFaceIcon(sides, bs, bw)
   const borderTitle = borderState === 'on' ? tr('designer.toolbar.borderToggleOn') : (faceMixed ? tr('designer.toolbar.borderToggleMixed') : tr('designer.toolbar.borderToggleOff'))
-  const menuOpen = !!(ui && ui.borderMenuOpen && hasSel)
+  const tbMenu = (ui && ui.tbMenu) || ''
+  const menuOpen = tbMenu === 'border' && hasSel
+  const kind = tpl.printKind === 'label' ? 'label' : 'document'
+  const summaryOn = kind !== 'label' && tpl.summaryEnabled !== false
+  const paperLab = preset === 'custom' ? tr('designer.toolbar.customSize') : String(preset || 'A4')
+  const kindLab = kind === 'label' ? tr('designer.toolbar.kindLabel') : tr('designer.toolbar.kindReport')
   const textColorMix = commonValue(selectedEls, (e) => (((e.style || {}).color) || '#000000'))
   const bgColorMix = commonValue(selectedEls, (e) => (((e.style || {}).backgroundColor) || '#ffffff'))
   const textColor = textColorMix.value || '#000000'
@@ -156,20 +171,22 @@ export function renderToolbar (tpl, selectedEls, ui) {
   const under = st.textDecoration === 'underline'
   const strike = st.textDecoration === 'line-through'
   const dis = hasSel ? '' : ' disabled'
-  const kind = tpl.printKind === 'label' ? 'label' : 'document'
-  const summaryOn = kind !== 'label' && tpl.summaryEnabled !== false
   let html = ''
   html += '<div class="tb-seg paper-controls">'
-  html += '<select data-act="kind" id="printKind" title="' + esc(tr('designer.toolbar.kind')) + '">'
-  html += '<option value="document"' + (kind !== 'label' ? ' selected' : '') + '>' + esc(tr('designer.toolbar.kindReport')) + '</option>'
-  html += '<option value="label"' + (kind === 'label' ? ' selected' : '') + '>' + esc(tr('designer.toolbar.kindLabel')) + '</option>'
-  html += '</select>'
-  html += '<select data-act="preset" id="paperSize" title="' + esc(tr('designer.toolbar.paper')) + '">'
-  html += '<option value="A4"' + (preset === 'A4' ? ' selected' : '') + '>A4</option>'
-  html += '<option value="A5"' + (preset === 'A5' ? ' selected' : '') + '>A5</option>'
-  html += '<option value="B5"' + (preset === 'B5' ? ' selected' : '') + '>B5</option>'
-  html += '<option value="custom"' + (preset === 'custom' ? ' selected' : '') + '>' + esc(tr('designer.toolbar.customSize')) + '</option>'
-  html += '</select>'
+  html += '<div class="tb-drop' + (tbMenu === 'kind' ? ' is-open' : '') + '" data-drop="kind">'
+  html += '<button type="button" class="tb-drop__btn" data-act="menu-kind" title="' + esc(tr('designer.toolbar.kind')) + '"><span>' + esc(kindLab) + '</span>' + dropCaret() + '</button>'
+  html += '<div class="tb-drop__panel">'
+  html += dropItem('kind', 'document', tr('designer.toolbar.kindReport'), kind !== 'label')
+  html += dropItem('kind', 'label', tr('designer.toolbar.kindLabel'), kind === 'label')
+  html += '</div></div>'
+  html += '<div class="tb-drop' + (tbMenu === 'paper' ? ' is-open' : '') + '" data-drop="paper">'
+  html += '<button type="button" class="tb-drop__btn" data-act="menu-paper" title="' + esc(tr('designer.toolbar.paper')) + '"><span>' + esc(paperLab) + '</span>' + dropCaret() + '</button>'
+  html += '<div class="tb-drop__panel">'
+  html += dropItem('preset', 'A4', 'A4', preset === 'A4')
+  html += dropItem('preset', 'A5', 'A5', preset === 'A5')
+  html += dropItem('preset', 'B5', 'B5', preset === 'B5')
+  html += dropItem('preset', 'custom', tr('designer.toolbar.customSize'), preset === 'custom')
+  html += '</div></div>'
   if (preset === 'custom') {
     html += '<div class="custom-size-inputs">'
     html += '<input type="number" data-act="mmw" step="0.1" min="0" value="' + esc(mmw) + '" placeholder="' + esc(tr('designer.toolbar.widthMm')) + '">'
@@ -194,30 +211,32 @@ export function renderToolbar (tpl, selectedEls, ui) {
   html += '<button type="button" class="tb-btn" data-act="space" title="' + esc(tr('designer.toolbar.distributeTitle')) + '">' + ICON.space + '</button>'
   html += '</div>'
   html += '<div class="tb-seg border-menu' + (hasSel ? '' : ' is-off') + '">'
-  html += '<div class="border-split' + (menuOpen ? ' is-open' : '') + '">'
-  html += '<button type="button" class="border-split__main is-' + (faceMixed ? 'mixed' : borderState) + '" data-act="border-toggle" title="' + esc(borderTitle) + '"' + off + '>'
+  html += '<div class="tb-drop tb-drop--split' + (menuOpen ? ' is-open' : '') + '" data-drop="border">'
+  html += '<div class="tb-drop__split">'
+  html += '<button type="button" class="tb-drop__icon is-' + (faceMixed ? 'mixed' : borderState) + '" data-act="border-toggle" title="' + esc(borderTitle) + '"' + off + '>'
   html += borderIcon
   html += '</button>'
-  html += '<button type="button" class="border-split__caret" data-act="border-more" title="' + esc(tr('designer.toolbar.borderMoreTitle')) + '"' + off + '>▾</button>'
-  html += '<div class="border-menu__panel" data-menu="border">'
+  html += '<button type="button" class="tb-drop__caret-btn" data-act="menu-border" title="' + esc(tr('designer.toolbar.borderMoreTitle')) + '"' + off + '>' + dropCaret() + '</button>'
+  html += '</div>'
+  html += '<div class="tb-drop__panel tb-drop__panel--border">'
   html += '<input type="hidden" data-act="bw" value="' + esc(bw) + '">'
   html += '<input type="hidden" data-act="bs" value="' + esc(bs) + '">'
-  html += '<button type="button" class="border-item' + (sides.bottom ? ' on' : '') + '" data-act="border-bottom">' + ICON.borderBottom + '<span>' + esc(tr('designer.toolbar.borderBottom')) + '</span></button>'
-  html += '<button type="button" class="border-item' + (sides.top ? ' on' : '') + '" data-act="border-top">' + ICON.borderTop + '<span>' + esc(tr('designer.toolbar.borderTop')) + '</span></button>'
-  html += '<button type="button" class="border-item' + (sides.left ? ' on' : '') + '" data-act="border-left">' + ICON.borderLeft + '<span>' + esc(tr('designer.toolbar.borderLeft')) + '</span></button>'
-  html += '<button type="button" class="border-item' + (sides.right ? ' on' : '') + '" data-act="border-right">' + ICON.borderRight + '<span>' + esc(tr('designer.toolbar.borderRight')) + '</span></button>'
-  html += '<button type="button" class="border-item' + (noneOn ? ' on' : '') + '" data-act="border-none">' + ICON.borderNone + '<span>' + esc(tr('designer.toolbar.borderNone')) + '</span></button>'
-  html += '<button type="button" class="border-item' + (allOn ? ' on' : '') + '" data-act="border-all">' + ICON.borderAll + '<span>' + esc(tr('designer.toolbar.borderAll')) + '</span></button>'
-  html += '<div class="border-menu__hr"></div>'
-  html += '<div class="border-menu__lab">' + esc(tr('designer.toolbar.borderLineStyle')) + '</div>'
-  html += '<div class="border-menu__row">'
+  html += '<button type="button" class="tb-drop__item' + (sides.bottom ? ' is-on' : '') + '" data-act="border-bottom">' + ICON.borderBottom + '<span>' + esc(tr('designer.toolbar.borderBottom')) + '</span></button>'
+  html += '<button type="button" class="tb-drop__item' + (sides.top ? ' is-on' : '') + '" data-act="border-top">' + ICON.borderTop + '<span>' + esc(tr('designer.toolbar.borderTop')) + '</span></button>'
+  html += '<button type="button" class="tb-drop__item' + (sides.left ? ' is-on' : '') + '" data-act="border-left">' + ICON.borderLeft + '<span>' + esc(tr('designer.toolbar.borderLeft')) + '</span></button>'
+  html += '<button type="button" class="tb-drop__item' + (sides.right ? ' is-on' : '') + '" data-act="border-right">' + ICON.borderRight + '<span>' + esc(tr('designer.toolbar.borderRight')) + '</span></button>'
+  html += '<button type="button" class="tb-drop__item' + (noneOn ? ' is-on' : '') + '" data-act="border-none">' + ICON.borderNone + '<span>' + esc(tr('designer.toolbar.borderNone')) + '</span></button>'
+  html += '<button type="button" class="tb-drop__item' + (allOn ? ' is-on' : '') + '" data-act="border-all">' + ICON.borderAll + '<span>' + esc(tr('designer.toolbar.borderAll')) + '</span></button>'
+  html += '<div class="tb-drop__hr"></div>'
+  html += '<div class="tb-drop__lab">' + esc(tr('designer.toolbar.borderLineStyle')) + '</div>'
+  html += '<div class="tb-drop__row">'
   html += [1, 2, 3, 4, 5].map((n) => '<button type="button" class="border-chip' + (Number(bw) === n ? ' on' : '') + '" data-act="bw-pick" data-val="' + n + '">' + n + '</button>').join('')
   html += '</div>'
-  html += '<div class="border-menu__row">'
+  html += '<div class="tb-drop__row">'
   html += ['solid', 'dashed', 'dotted'].map((stName) => '<button type="button" class="border-chip border-chip--style' + (bs === stName ? ' on' : '') + '" data-act="bs-pick" data-val="' + stName + '"><span class="border-chip__line" style="border-bottom:2px ' + stName + ' currentColor"></span></button>').join('')
   html += '</div>'
-  html += '<div class="border-menu__lab">' + esc(tr('designer.toolbar.borderLineColor')) + '</div>'
-  html += '<label class="border-color-pick"><input type="color" data-act="bc" value="' + esc(bc) + '"' + off + '></label>'
+  html += '<div class="tb-drop__lab">' + esc(tr('designer.toolbar.borderLineColor')) + '</div>'
+  html += '<div class="tb-drop__row"><input type="color" class="tb-drop__color" data-act="bc" value="' + esc(bc) + '"' + off + '></div>'
   html += '</div></div></div>'
   html += '<div class="tb-seg text-style-controls' + (hasSel ? '' : ' is-off') + '">'
   html += '<select data-act="fontFamily" title="' + esc(tr('designer.toolbar.fontFamilySelect')) + '"' + dis + '>' + fontOpts + '</select>'
@@ -240,14 +259,14 @@ export function renderToolbar (tpl, selectedEls, ui) {
   html += '<button type="button" class="tb-btn" data-act="talign" title="' + alignTitle(textAlign) + '"' + dis + '>' + alignIcon(textAlign) + '</button>'
   html += '<button type="button" class="tb-btn" data-act="valign" title="' + valignTitle(vAlign) + '"' + dis + '>' + valignIcon(vAlign) + '</button>'
   html += '</div></div>'
-  html += '<details class="tb-seg print-menu" data-menu="print">'
-  html += '<summary class="tb-action">' + esc(tr('designer.toolbar.printMenu')) + '<span class="print-menu__caret">▾</span></summary>'
-  html += '<div class="print-menu__list">'
-  html += '<button class="print-menu__item" type="button" data-act="frontend-print">' + esc(tr('designer.toolbar.frontendPrintBtn')) + '</button>'
-  html += '<button class="print-menu__item" type="button" data-act="pdf-print">' + esc(tr('designer.toolbar.pdfPrintBtn')) + '</button>'
-  html += '<button class="print-menu__item" type="button" data-act="frontend-jump">' + esc(tr('designer.toolbar.frontendJumpBtn')) + '</button>'
-  html += '<button class="print-menu__item" type="button" data-act="pdf-jump">' + esc(tr('designer.toolbar.pdfJumpBtn')) + '</button>'
-  html += '</div></details>'
+  html += '<div class="tb-seg tb-drop' + (tbMenu === 'print' ? ' is-open' : '') + '" data-drop="print">'
+  html += '<button type="button" class="tb-drop__btn" data-act="menu-print"><span>' + esc(tr('designer.toolbar.printMenu')) + '</span>' + dropCaret() + '</button>'
+  html += '<div class="tb-drop__panel">'
+  html += '<button type="button" class="tb-drop__item" data-act="frontend-print"><span class="tb-drop__check"></span><span>' + esc(tr('designer.toolbar.frontendPrintBtn')) + '</span></button>'
+  html += '<button type="button" class="tb-drop__item" data-act="pdf-print"><span class="tb-drop__check"></span><span>' + esc(tr('designer.toolbar.pdfPrintBtn')) + '</span></button>'
+  html += '<button type="button" class="tb-drop__item" data-act="frontend-jump"><span class="tb-drop__check"></span><span>' + esc(tr('designer.toolbar.frontendJumpBtn')) + '</span></button>'
+  html += '<button type="button" class="tb-drop__item" data-act="pdf-jump"><span class="tb-drop__check"></span><span>' + esc(tr('designer.toolbar.pdfJumpBtn')) + '</span></button>'
+  html += '</div></div>'
   return html
 }
 

@@ -377,185 +377,158 @@ export const PRINT_TOOL_CSS = VUE_CLONE_CSS + `
   border-color: #cbd5e1 !important;
   color: #111827;
 }
-.toolbar .print-menu {
-  position: relative;
-  margin-left: 0;
-}
-.tk-ui .toolbar .print-menu > summary.tb-action {
-  height: 28px;
-  padding: 0 8px;
-  border: 1px solid #d1d5db !important;
-  border-radius: 4px;
-  background: #fff;
-  color: #374151;
-  cursor: pointer;
-  white-space: nowrap;
-  font-size: 12px;
-  font-weight: 500;
-  list-style: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  box-shadow: none;
-}
-.tk-ui .toolbar .print-menu > summary.tb-action::-webkit-details-marker {
-  display: none;
-}
-.tk-ui .toolbar .print-menu > summary.tb-action:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1 !important;
-  color: #111827;
-}
-.toolbar .print-menu__caret {
-  font-size: 10px;
-  line-height: 1;
-  color: #6b7280;
-}
-.toolbar .print-menu__list {
-  position: absolute;
-  left: 0;
-  right: auto;
-  top: calc(100% + 4px);
-  min-width: 132px;
-  padding: 4px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
-  z-index: 40;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.toolbar .print-menu__item {
-  height: 28px;
-  padding: 0 8px;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: #374151;
-  text-align: left;
-  font-size: 12px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.toolbar .print-menu__item:hover {
-  background: #f8fafc;
-  color: #111827;
-}
-.toolbar details.print-menu {
-  display: block;
-  position: relative;
-  overflow: visible;
-}
 .toolbar .border-menu,
-.toolbar .text-style-controls {
+.toolbar .text-style-controls,
+.toolbar .paper-controls,
+.toolbar .tb-drop {
   overflow: visible;
+  position: relative;
 }
 .toolbar .border-menu.is-off,
 .toolbar .text-style-controls.is-off {
   opacity: 0.4;
   pointer-events: none;
 }
-.toolbar .border-split {
+.toolbar .tb-drop:not(.is-open) > .tb-drop__panel {
+  display: none;
+}
+.tk-ui .toolbar button.tb-drop__btn {
+  height: 28px;
+  min-width: 64px;
+  padding: 0 8px 0 10px;
+  border: 1px solid #d1d5db !important;
+  border-radius: 4px;
+  background: #fff;
+  color: #374151;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: none;
+  cursor: pointer;
+}
+.tk-ui .toolbar button.tb-drop__btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1 !important;
+  color: #111827;
+}
+.toolbar .tb-drop.is-open > .tb-drop__btn,
+.toolbar .tb-drop.is-open > .tb-drop__split {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12);
+}
+.toolbar .tb-drop.is-open .tb-drop__caret {
+  transform: rotate(180deg);
+}
+.toolbar .tb-drop__caret {
+  display: inline-flex;
+  color: #6b7280;
+  transition: transform 0.12s ease;
+}
+.toolbar .tb-drop__split {
   display: inline-flex;
   align-items: stretch;
   height: 28px;
   border: 1px solid #d1d5db;
   border-radius: 4px;
   background: #fff;
-  position: relative;
-  overflow: visible;
+  overflow: hidden;
 }
-.toolbar .border-split__main {
+.tk-ui .toolbar button.tb-drop__icon,
+.tk-ui .toolbar button.tb-drop__caret-btn {
+  height: 28px;
+  padding: 0;
+  border: none !important;
+  border-radius: 0;
+  background: transparent;
+  color: #4b5563;
+  box-shadow: none;
+  cursor: pointer;
+}
+.tk-ui .toolbar button.tb-drop__icon {
+  width: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
 }
-.toolbar .border-split__main:hover {
+.tk-ui .toolbar button.tb-drop__caret-btn {
+  width: 18px;
+  border-left: 1px solid #e5e7eb !important;
+  color: #6b7280;
+}
+.tk-ui .toolbar button.tb-drop__icon:hover:not(:disabled),
+.tk-ui .toolbar button.tb-drop__caret-btn:hover:not(:disabled) {
   background: #f3f4f6;
 }
-.toolbar .border-split__caret {
-  width: 18px;
-  height: 28px;
-  padding: 0;
-  border: none;
-  border-left: 1px solid #e5e7eb;
-  background: transparent;
-  color: #6b7280;
-  font-size: 10px;
-  line-height: 1;
-  cursor: pointer;
-}
-.toolbar .border-split__caret:hover {
-  background: #f8fafc;
-}
-.toolbar .border-split:not(.is-open) .border-menu__panel {
-  display: none;
-}
-.toolbar .border-menu__panel {
+.toolbar .tb-drop__panel {
   position: absolute;
   left: 0;
-  top: calc(100% + 4px);
-  z-index: 80;
-  min-width: 196px;
+  top: calc(100% + 6px);
+  z-index: 120;
+  min-width: 148px;
   padding: 6px;
   background: #fff;
   border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+  border-radius: 8px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
-.toolbar .border-color-pick {
-  display: flex;
-  width: 100%;
+.toolbar .tb-drop__panel--border {
+  min-width: 208px;
 }
-.toolbar .border-color-pick input[type="color"] {
-  width: 100%;
-  height: 28px;
-}
-.toolbar .border-item {
+.tk-ui .toolbar button.tb-drop__item {
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 28px;
+  height: 30px;
   width: 100%;
   padding: 0 8px;
-  border: none;
-  border-radius: 4px;
+  border: none !important;
+  border-radius: 6px;
   background: transparent;
   color: #374151;
   text-align: left;
   font-size: 12px;
+  box-shadow: none;
   cursor: pointer;
 }
-.toolbar .border-item:hover,
-.toolbar .border-item.on {
+.tk-ui .toolbar button.tb-drop__item:hover:not(:disabled) {
+  background: #f3f4f6;
+  color: #111827;
+}
+.tk-ui .toolbar button.tb-drop__item.is-on {
   background: #eff6ff;
   color: #1d4ed8;
 }
-.toolbar .border-menu__hr {
+.toolbar .tb-drop__check {
+  width: 12px;
+  flex: none;
+  font-size: 11px;
+  line-height: 1;
+}
+.toolbar .tb-drop__hr {
   height: 1px;
-  margin: 2px 0;
+  margin: 4px 2px;
   background: #e5e7eb;
 }
-.toolbar .border-menu__lab {
-  padding: 4px 4px 0;
+.toolbar .tb-drop__lab {
+  padding: 6px 6px 2px;
   font-size: 11px;
   color: #6b7280;
 }
-.toolbar .border-menu__row {
+.toolbar .tb-drop__row {
   display: flex;
   align-items: center;
   gap: 4px;
+  padding: 0 4px 4px;
+}
+.toolbar .tb-drop__color {
+  width: 28px;
+  height: 28px;
 }
 .toolbar .tb-group .tb-color {
   border-left: 1px solid #e5e7eb;
