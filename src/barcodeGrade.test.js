@@ -158,9 +158,10 @@ describe('UPC Grade-A geometry', () => {
   })
 
   it('exposes the core catalog and resolves aliases', () => {
-    expect(BARCODE_BWIP_SYMBOLS.length).toBe(26)
+    expect(BARCODE_BWIP_SYMBOLS.length).toBe(28)
     expect(listBwipSymbols({ matrix: true }).map((s) => s.bcid)).toEqual([
       'gs1datamatrix',
+      'gs1qrcode',
       'qrcode',
       'datamatrix',
       'pdf417',

@@ -106,30 +106,119 @@ export function syncColumnWidths (tpl, ids) {
   return true
 }
 
+export function borderSidesOf (border) {
+  if (!border) return { top: false, right: false, bottom: false, left: false }
+  const w = Number(border.width)
+  if (!Number.isFinite(w) || w <= 0) return { top: false, right: false, bottom: false, left: false }
+  const flagged = border.top != null || border.right != null || border.bottom != null || border.left != null
+  if (!flagged) return { top: true, right: true, bottom: true, left: true }
+  return {
+    top: border.top !== false,
+    right: border.right !== false,
+    bottom: border.bottom !== false,
+    left: border.left !== false
+  }
+}
+
+export function writeBorder (el, draft, sides) {
+  const on = !!(sides && (sides.top || sides.right || sides.bottom || sides.left))
+  if (!on) {
+    delete el.border
+    return
+  }
+  const all = !!(sides.top && sides.right && sides.bottom && sides.left)
+  const next = {
+    width: Number(draft && draft.width) || Number(el.border && el.border.width) || 1,
+    style: (draft && draft.style) || (el.border && el.border.style) || 'solid',
+    color: (draft && draft.color) || (el.border && el.border.color) || '#000000'
+  }
+  if (!all) {
+    next.top = !!sides.top
+    next.right = !!sides.right
+    next.bottom = !!sides.bottom
+    next.left = !!sides.left
+  }
+  el.border = next
+}
+
 export function toggleBorder (tpl, ids, draft) {
   const els = selected(tpl, ids)
   if (!els.length) return false
-  const on = !els.every((e) => e.border && e.border.width)
+  const on = !els.every((e) => {
+    const s = borderSidesOf(e.border)
+    return s.top || s.right || s.bottom || s.left
+  })
+  if (on) return setBorderOn(tpl, ids, draft)
+  return setBorderOff(tpl, ids)
+}
+
+export function setBorderOn (tpl, ids, draft) {
+  const els = selected(tpl, ids)
+  if (!els.length) return false
+  for (const el of els) writeBorder(el, draft, { top: true, right: true, bottom: true, left: true })
+  return true
+}
+
+export function setBorderOff (tpl, ids) {
+  const els = selected(tpl, ids)
+  if (!els.length) return false
+  for (const el of els) delete el.border
+  return true
+}
+
+export function elementHasBorder (el) {
+  const s = borderSidesOf(el && el.border)
+  return !!(s.top || s.right || s.bottom || s.left)
+}
+
+export function borderStateOf (els) {
+  if (!els || !els.length) return 'off'
+  const keys = els.map((el) => {
+    const s = borderSidesOf(el.border)
+    return (s.top ? '1' : '0') + (s.right ? '1' : '0') + (s.bottom ? '1' : '0') + (s.left ? '1' : '0')
+  })
+  const first = keys[0]
+  for (let i = 1; i < keys.length; i++) {
+    if (keys[i] !== first) return 'mixed'
+  }
+  return first === '0000' ? 'off' : 'on'
+}
+
+export function toggleMainBorder (tpl, ids, draft) {
+  const els = selected(tpl, ids)
+  if (!els.length) return false
+  if (els.some(elementHasBorder)) return setBorderOff(tpl, ids)
+  return setBorderOn(tpl, ids, draft)
+}
+
+export function toggleBorderSide (tpl, ids, draft, side) {
+  const els = selected(tpl, ids)
+  if (!els.length) return false
+  if (side !== 'top' && side !== 'right' && side !== 'bottom' && side !== 'left') return false
   for (const el of els) {
-    if (on) {
-      el.border = {
-        width: Number(draft && draft.width) || 1,
-        style: (draft && draft.style) || 'solid',
-        color: (draft && draft.color) || '#000000'
-      }
-    } else delete el.border
+    const sides = borderSidesOf(el.border)
+    sides[side] = !sides[side]
+    writeBorder(el, draft, sides)
   }
   return true
 }
 
 export function applyBorderDraft (tpl, ids, draft) {
   const els = selected(tpl, ids)
-  if (!els.length) return false
+  if (!els.length || !draft) return false
+  const width = Number(draft.width)
+  let changed = false
   for (const el of els) {
-    if (!el.border || !el.border.width) continue
-    el.border = Object.assign({}, el.border, draft)
+    if (!el.border || !Number(el.border.width)) continue
+    const next = Object.assign({}, el.border)
+    if (Number.isFinite(width) && width > 0) next.width = width
+    if (draft.style) next.style = draft.style
+    if (draft.color) next.color = draft.color
+    if (next.width === el.border.width && next.style === el.border.style && next.color === el.border.color) continue
+    el.border = next
+    changed = true
   }
-  return true
+  return changed
 }
 
 export function applyTextStyle (tpl, ids, key, value) {

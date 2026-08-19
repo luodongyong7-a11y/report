@@ -14,9 +14,13 @@ import {
   applyTextStyle,
   centerH,
   centerV,
+  borderSidesOf,
+  setBorderOff,
+  setBorderOn,
   spaceAround,
   syncColumnWidths,
-  toggleBorder
+  toggleBorderSide,
+  toggleMainBorder
 } from './align.js'
 import { buildMergedElementFromSorted, validateMergeSelectionV2 } from './merge.js'
 import { readBorderDraft, renderToolbar } from '../print-tool/toolbar.js'
@@ -38,6 +42,7 @@ import {
 } from './model.js'
 import { DESIGNER_CSS } from './style.js'
 import { ht } from '../print-tool/i18n.js'
+import { isBwipMatrixBcid, listBwipSymbolGroups } from '../barcodeBwipCatalog.js'
 
 const CROSS_TAB_CLIPBOARD_KEY = 'designer-cross-tab-clipboard'
 
@@ -188,7 +193,9 @@ function paintBarcodeInto (node, el) {
     return
   }
   try {
-    const format = el.type === 'qrcode' ? 'qrcode' : (el.barcodeFormat || 'code128')
+    const format = el.type === 'qrcode'
+      ? (el.qrcodeFormat || 'qrcode')
+      : (el.barcodeFormat || 'code128')
     const symbol = encode(text, { format })
     const geo = barcodeElementGeometry(el, symbol)
     const tag = node.ownerDocument.createElement('niqer-barcode')
@@ -221,7 +228,9 @@ export function mountDesigner (host, opts = {}) {
     lastMouse: { x: 0, y: 0 },
     editingId: '',
     editBox: null,
-    borderDraft: { width: 1, style: 'solid', color: '#000000' }
+    borderDraft: { width: 1, style: 'solid', color: '#000000' },
+    borderMenuOpen: false,
+    holdBorderColor: false
   }
   hist.reset(state.tpl)
 
@@ -298,10 +307,37 @@ export function mountDesigner (host, opts = {}) {
   }
 
   function paintToolbar () {
+    if (bar.querySelector('.border-split.is-open')) state.borderMenuOpen = true
+    const openMenus = [...bar.querySelectorAll('details[data-menu][open]')].map((d) => d.dataset.menu)
     bar.classList.add('toolbar')
     bar.innerHTML = renderToolbar(state.tpl, selectedEls(), {
-      t: (key) => ht(host, key)
+      t: (key) => ht(host, key),
+      borderDraft: state.borderDraft,
+      borderMenuOpen: state.borderMenuOpen && state.selected.size > 0
     }) + extraToolbarHtml
+    openMenus.forEach((name) => {
+      const menu = bar.querySelector('details[data-menu="' + name + '"]')
+      if (menu) menu.setAttribute('open', '')
+    })
+  }
+
+  function closeBorderMenu () {
+    state.borderMenuOpen = false
+    const split = bar.querySelector('.border-split')
+    if (split) split.classList.remove('is-open')
+  }
+
+  function applyBorderPen (commitNow, refreshBar) {
+    state.borderDraft = readBorderDraft(bar)
+    state.borderMenuOpen = true
+    if (applyBorderDraft(state.tpl, state.selected, state.borderDraft)) {
+      if (commitNow) {
+        hist.push(state.tpl)
+        emitChange()
+      }
+      paintPaper()
+    }
+    if (refreshBar) paintToolbar()
   }
 
   function paintPalette () {
@@ -388,6 +424,29 @@ export function mountDesigner (host, opts = {}) {
     return '<button type="button" class="npt-switch" data-p="' + key + '" data-on="' + (on ? '1' : '0') + '" title="' + escAttr(title) + '" role="switch" aria-checked="' + (on ? 'true' : 'false') + '"><span class="npt-switch__core"></span></button>'
   }
 
+  function barcodeStyleSelectHtml (el) {
+    const matrix = el.type === 'qrcode'
+    const p = matrix ? 'qrcodeFormat' : 'barcodeFormat'
+    const cur = String((matrix ? el.qrcodeFormat : el.barcodeFormat) || (matrix ? 'qrcode' : 'code128')).toLowerCase()
+    const titleKey = matrix ? 'designer.properties.qrcodeStyle' : 'designer.properties.barcodeStyle'
+    let html = '<div class="property-item"><select data-p="' + p + '" title="' + escAttr(ht(host, titleKey)) + '">'
+    let seen = false
+    for (const g of listBwipSymbolGroups({ mainstream: true })) {
+      const items = g.items.filter((s) => isBwipMatrixBcid(s.bcid) === matrix)
+      if (!items.length) continue
+      html += '<optgroup label="' + escAttr(ht(host, g.labelKey) || g.id) + '">'
+      for (const s of items) {
+        if (s.bcid === cur) seen = true
+        const lab = ht(host, s.descKey) || s.desc || s.bcid
+        html += '<option value="' + escAttr(s.bcid) + '"' + (s.bcid === cur ? ' selected' : '') + '>' + escAttr(lab) + '</option>'
+      }
+      html += '</optgroup>'
+    }
+    if (!seen && cur) html += '<option value="' + escAttr(cur) + '" selected>' + escAttr(cur) + '</option>'
+    html += '</select></div>'
+    return html
+  }
+
   function formatPrevNodeIds (prev) {
     if (prev == null || prev === '' || (Array.isArray(prev) && !prev.length)) return ht(host, 'designer.properties.noDependency')
     const s = Array.isArray(prev) ? prev.join(',') : String(prev)
@@ -460,6 +519,7 @@ export function mountDesigner (host, opts = {}) {
     html += '<option value="qrcode"' + (el.type === 'qrcode' ? ' selected' : '') + '>' + ht(host, 'designer.main.compQrcode') + '</option>'
     html += '<option value="barcode"' + (el.type === 'barcode' ? ' selected' : '') + '>' + ht(host, 'designer.main.compBarcode') + '</option>'
     html += '</select></div>'
+    if (el.type === 'barcode' || el.type === 'qrcode') html += barcodeStyleSelectHtml(el)
     if (showFormat) {
       html += '<div class="property-item property-block-top"><select data-p="formatType"><option value="none"' + (!el.formatType || el.formatType === 'none' ? ' selected' : '') + '>' + ht(host, 'designer.properties.formatNone') + '</option><option value="date"' + (el.formatType === 'date' ? ' selected' : '') + '>' + ht(host, 'designer.properties.formatDate') + '</option><option value="number"' + (el.formatType === 'number' ? ' selected' : '') + '>' + ht(host, 'designer.properties.formatNumber') + '</option></select></div>'
       if (el.formatType === 'date') {
@@ -584,10 +644,23 @@ export function mountDesigner (host, opts = {}) {
     } else {
       node.style.backgroundColor = st.backgroundColor || 'white'
     }
-    if (el.border && el.border.width) {
+    const sides = borderSidesOf(el.border)
+    if (sides.top || sides.right || sides.bottom || sides.left) {
       const color = selected ? '#ffffff' : (el.border.color || '#000')
-      node.style.border = (el.border.width || 1) + 'px ' + (el.border.style || 'solid') + ' ' + color
-    } else node.style.border = '0'
+      const w = (el.border.width || 1) + 'px'
+      const bs = el.border.style || 'solid'
+      const line = (on) => on ? w + ' ' + bs + ' ' + color : '0'
+      node.style.borderTop = line(sides.top)
+      node.style.borderRight = line(sides.right)
+      node.style.borderBottom = line(sides.bottom)
+      node.style.borderLeft = line(sides.left)
+    } else {
+      node.style.border = '0'
+      node.style.borderTop = ''
+      node.style.borderRight = ''
+      node.style.borderBottom = ''
+      node.style.borderLeft = ''
+    }
     const key = elementPaintKey(el)
     const existing = node.firstElementChild
     if (existing && existing.classList.contains('element-content-wrapper') && node.dataset.ck === key) {
@@ -692,16 +765,6 @@ export function mountDesigner (host, opts = {}) {
         }
         wrapEl.appendChild(box)
       }
-    } else if (state.editingId === el.id && (el.type === 'barcode' || el.type === 'qrcode')) {
-      const ta = doc.createElement('textarea')
-      ta.className = 'text-editor'
-      ta.value = el.content || ''
-      ta.addEventListener('blur', () => {
-        el.content = ta.value
-        state.editingId = ''
-        commit()
-      })
-      wrapEl.appendChild(ta)
     } else {
       const isQr = el.type === 'qrcode'
       const box = doc.createElement('div')
@@ -738,6 +801,7 @@ export function mountDesigner (host, opts = {}) {
 
   function paintGuides () {
     paper.querySelectorAll('.header-line, .footer-line, .summary-a-line, .summary-b-line, .print-safe-area').forEach((n) => n.remove())
+    if (state.tpl.printKind === 'label') return
     const safe = REPORT_SAFE_MARGIN_PX
     const area = doc.createElement('div')
     area.className = 'print-safe-area'
@@ -748,12 +812,13 @@ export function mountDesigner (host, opts = {}) {
     paper.appendChild(area)
     const headerY = headerHeightOf(state.tpl)
     const footerY = footerYOf(state.tpl)
+    const showSummary = state.tpl.summaryEnabled !== false
     const lines = [
       [headerY, ht(host, 'designer.canvas.lineHeader'), 'header-line', 'headerY'],
-      [displayedSummary(state.tpl, 'summaryA'), ht(host, 'designer.canvas.lineSummaryA'), 'summary-a-line', 'summaryA'],
-      [displayedSummary(state.tpl, 'summaryB'), ht(host, 'designer.canvas.lineSummaryB'), 'summary-b-line', 'summaryB'],
+      showSummary ? [displayedSummary(state.tpl, 'summaryA'), ht(host, 'designer.canvas.lineSummaryA'), 'summary-a-line', 'summaryA'] : null,
+      showSummary ? [displayedSummary(state.tpl, 'summaryB'), ht(host, 'designer.canvas.lineSummaryB'), 'summary-b-line', 'summaryB'] : null,
       [footerY, ht(host, 'designer.canvas.lineFooter'), 'footer-line', 'footerY']
-    ]
+    ].filter(Boolean)
     for (const [y, label, cls, key] of lines) {
       if (!Number.isFinite(y)) continue
       const g = doc.createElement('div')
@@ -830,6 +895,7 @@ export function mountDesigner (host, opts = {}) {
       if (add && state.selected.has(id)) state.selected.delete(id)
       else state.selected.add(id)
     }
+    paintToolbar()
     paintPaper()
     if (state.leftTab === 'prop') paintProps()
     fire(host, 'select', { ids: [...state.selected] })
@@ -988,12 +1054,12 @@ export function mountDesigner (host, opts = {}) {
 
   function beginEdit (el) {
     if (!el) return
-    if (el.type === 'text' || el.type === 'data') {
+    if (el.type === 'text' || el.type === 'data' || el.type === 'barcode' || el.type === 'qrcode') {
       if (state.editBox && state.editBox.id === el.id) return
       openEditBox(el)
       return
     }
-    if (el.type !== 'image' && el.type !== 'barcode' && el.type !== 'qrcode') return
+    if (el.type !== 'image') return
     if (state.editingId === el.id) {
       const ta = paper.querySelector('[data-id="' + el.id + '"] textarea')
       if (ta) ta.focus()
@@ -1189,14 +1255,16 @@ export function mountDesigner (host, opts = {}) {
     const summaryALineBottom = summaryATop + 1
     const summaryBLineBottom = summaryBTop + 1
     const footerLineBottom = (paperH - footerH) + 1
-    if (Math.abs(newMinY - headerH) <= snapThreshold) actualDeltaY = headerH - groupMinY
-    else if (Math.abs(newMaxY - headerLineBottom) <= snapThreshold) actualDeltaY = headerLineBottom - groupMaxY
-    else if (Math.abs(newMinY - summaryATop) <= snapThreshold) actualDeltaY = summaryATop - groupMinY
-    else if (Math.abs(newMaxY - summaryALineBottom) <= snapThreshold) actualDeltaY = summaryALineBottom - groupMaxY
-    else if (Math.abs(newMinY - summaryBTop) <= snapThreshold) actualDeltaY = summaryBTop - groupMinY
-    else if (Math.abs(newMaxY - summaryBLineBottom) <= snapThreshold) actualDeltaY = summaryBLineBottom - groupMaxY
-    else if (Math.abs(newMinY - (paperH - footerH)) <= snapThreshold) actualDeltaY = (paperH - footerH) - groupMinY
-    else if (Math.abs(newMaxY - footerLineBottom) <= snapThreshold) actualDeltaY = footerLineBottom - groupMaxY
+    const labelMode = state.tpl.printKind === 'label'
+    const showSummary = !labelMode && state.tpl.summaryEnabled !== false
+    if (!labelMode && Math.abs(newMinY - headerH) <= snapThreshold) actualDeltaY = headerH - groupMinY
+    else if (!labelMode && Math.abs(newMaxY - headerLineBottom) <= snapThreshold) actualDeltaY = headerLineBottom - groupMaxY
+    else if (showSummary && Math.abs(newMinY - summaryATop) <= snapThreshold) actualDeltaY = summaryATop - groupMinY
+    else if (showSummary && Math.abs(newMaxY - summaryALineBottom) <= snapThreshold) actualDeltaY = summaryALineBottom - groupMaxY
+    else if (showSummary && Math.abs(newMinY - summaryBTop) <= snapThreshold) actualDeltaY = summaryBTop - groupMinY
+    else if (showSummary && Math.abs(newMaxY - summaryBLineBottom) <= snapThreshold) actualDeltaY = summaryBLineBottom - groupMaxY
+    else if (!labelMode && Math.abs(newMinY - (paperH - footerH)) <= snapThreshold) actualDeltaY = (paperH - footerH) - groupMinY
+    else if (!labelMode && Math.abs(newMaxY - footerLineBottom) <= snapThreshold) actualDeltaY = footerLineBottom - groupMaxY
     const groupLeft = groupMinX
     const groupRight = groupMaxX
     const groupTop = groupMinY
@@ -1382,6 +1450,7 @@ export function mountDesigner (host, opts = {}) {
         }
       }
       state.drag = null
+      paintToolbar()
       paintPaper()
       if (state.leftTab === 'prop') paintProps()
       fire(host, 'select', { ids: [...state.selected] })
@@ -1594,9 +1663,9 @@ export function mountDesigner (host, opts = {}) {
       if (wEl && hEl) applyCustomPaperMm(state.tpl, Number(wEl.value), Number(hEl.value), state.tpl.paperOrientation)
       commit()
     }
-    if (act === 'bw' || act === 'bs' || act === 'bc') {
-      state.borderDraft = readBorderDraft(bar)
-      if (applyBorderDraft(state.tpl, state.selected, state.borderDraft)) commit()
+    if (act === 'bc') {
+      applyBorderPen(true, false)
+      setTimeout(() => { state.holdBorderColor = false }, 300)
     }
     if (act === 'color') {
       if (applyTextStyle(state.tpl, state.selected, 'color', ev.target.value)) commit()
@@ -1624,8 +1693,8 @@ export function mountDesigner (host, opts = {}) {
     if (act === 'color' && applyTextStyle(state.tpl, state.selected, 'color', ev.target.value)) paintPaper()
     if (act === 'bg' && applyTextStyle(state.tpl, state.selected, 'backgroundColor', ev.target.value)) paintPaper()
     if (act === 'bc') {
-      state.borderDraft = readBorderDraft(bar)
-      if (applyBorderDraft(state.tpl, state.selected, state.borderDraft)) paintPaper()
+      state.holdBorderColor = true
+      applyBorderPen(false)
     }
   })
 
@@ -1649,9 +1718,45 @@ export function mountDesigner (host, opts = {}) {
     if (act === 'centerv' && centerV(state.tpl, ids)) commit()
     if (act === 'space' && spaceAround(state.tpl, ids)) commit()
     if (act === 'syncw' && syncColumnWidths(state.tpl, ids)) commit()
-    if (act === 'border') {
+    if (act === 'border-more') {
+      if (!ids.size) return
+      state.borderMenuOpen = !state.borderMenuOpen
+      const split = bar.querySelector('.border-split')
+      if (split) split.classList.toggle('is-open', state.borderMenuOpen)
+      return
+    }
+    if (act === 'bw-pick' || act === 'bs-pick') {
+      const key = act === 'bw-pick' ? 'bw' : 'bs'
+      const hidden = bar.querySelector('[data-act=' + key + ']')
+      if (hidden) hidden.value = btn.dataset.val
+      applyBorderPen(true, true)
+      return
+    }
+    if (act === 'border-toggle') {
+      if (!ids.size) return
       state.borderDraft = readBorderDraft(bar)
-      if (toggleBorder(state.tpl, ids, state.borderDraft)) commit()
+      if (toggleMainBorder(state.tpl, ids, state.borderDraft)) commit()
+      return
+    }
+    if (act === 'border-all') {
+      if (!ids.size) return
+      state.borderDraft = readBorderDraft(bar)
+      state.borderMenuOpen = true
+      if (setBorderOn(state.tpl, ids, state.borderDraft)) commit()
+      return
+    }
+    if (act === 'border-none') {
+      if (!ids.size) return
+      state.borderMenuOpen = true
+      if (setBorderOff(state.tpl, ids)) commit()
+      return
+    }
+    if (act === 'border-top' || act === 'border-right' || act === 'border-bottom' || act === 'border-left') {
+      if (!ids.size) return
+      state.borderDraft = readBorderDraft(bar)
+      state.borderMenuOpen = true
+      if (toggleBorderSide(state.tpl, ids, state.borderDraft, act.slice('border-'.length))) commit()
+      return
     }
     if (act === 'bold') {
       const on = selectedEls().some((e) => e.style && (e.style.fontWeight === 'bold' || e.style.fontWeight === '700'))
@@ -1700,6 +1805,23 @@ export function mountDesigner (host, opts = {}) {
     if (typeof opts.onToolbarClick === 'function') opts.onToolbarClick(act, ev)
   })
 
+  doc.addEventListener('click', (ev) => {
+    bar.querySelectorAll('details[data-menu][open]').forEach((menu) => {
+      if (menu.contains(ev.target)) return
+      menu.removeAttribute('open')
+    })
+    if (state.holdBorderColor) return
+    if (state.borderMenuOpen && ev.target.closest && !ev.target.closest('.border-split')) closeBorderMenu()
+  }, true)
+
+  bar.addEventListener('mousedown', (ev) => {
+    const color = ev.target.closest && ev.target.closest('[data-act=bc]')
+    if (color && bar.contains(color)) {
+      state.holdBorderColor = true
+      state.borderMenuOpen = true
+    }
+  }, true)
+
   if (leftPane) {
     function applyPropToSelected (key, raw) {
       const targets = selectedEls()
@@ -1708,7 +1830,11 @@ export function mountDesigner (host, opts = {}) {
       if (key === 'y' && !canBatchModifyY()) return
       for (const el of targets) {
         if (key === 'type') {
-          if (canConvertType(el.type, raw)) el.type = raw
+          if (canConvertType(el.type, raw)) {
+            el.type = raw
+            if (raw === 'barcode' && !el.barcodeFormat) el.barcodeFormat = 'code128'
+            if (raw === 'qrcode' && !el.qrcodeFormat) el.qrcodeFormat = 'qrcode'
+          }
         } else if (key === 'x' || key === 'y' || key === 'width' || key === 'height') {
           el[key] = Number(raw) || 0
         } else if (key === 'decimalPlaces') {

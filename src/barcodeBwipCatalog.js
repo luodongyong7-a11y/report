@@ -18,7 +18,9 @@ const DESC_KEY = {
   sscc: 'designer.main.symSscc',
   itf14: 'designer.main.symItf14',
   ean14: 'designer.main.symEan14',
+  gs1databar: 'designer.main.symGs1Databar',
   gs1datamatrix: 'designer.main.symGs1Dm',
+  gs1qrcode: 'designer.main.symGs1Qr',
   code128: 'designer.main.symCode128',
   code39: 'designer.main.symCode39',
   code93: 'designer.main.symCode93',
@@ -46,7 +48,14 @@ export const BARCODE_BWIP_SYMBOLS = listSymbologies().map((s) => ({
 
 const BCID_SET = new Set(BARCODE_BWIP_SYMBOLS.map((s) => s.bcid))
 const BY_BCID = new Map(BARCODE_BWIP_SYMBOLS.map((s) => [s.bcid, s]))
-const MATRIX_BCIDS = new Set(['qrcode', 'datamatrix', 'gs1datamatrix', 'pdf417', 'azteccode'])
+const MATRIX_BCIDS = new Set(['qrcode', 'gs1qrcode', 'datamatrix', 'gs1datamatrix', 'pdf417', 'azteccode'])
+
+const MAINSTREAM_BCIDS = new Set([
+  'upca', 'upce', 'ean13', 'ean8',
+  'gs1-128', 'itf14', 'gs1databar',
+  'code128', 'code39', 'code93', 'codabar', 'interleaved2of5',
+  'qrcode', 'gs1qrcode', 'datamatrix', 'pdf417'
+])
 
 const GROUP_META = [
   { id: 'retail', labelKey: 'designer.main.compGroupRetail' },
@@ -85,15 +94,22 @@ export function isBwipMatrixBcid (bcid) {
   return MATRIX_BCIDS.has(String(bcid || '').toLowerCase())
 }
 
-export function listBwipSymbols ({ matrix } = {}) {
-  if (matrix === true) return BARCODE_BWIP_SYMBOLS.filter((s) => isBwipMatrixBcid(s.bcid))
-  if (matrix === false) return BARCODE_BWIP_SYMBOLS.filter((s) => !isBwipMatrixBcid(s.bcid))
-  return BARCODE_BWIP_SYMBOLS.slice()
+export function isMainstreamBwipBcid (bcid) {
+  return MAINSTREAM_BCIDS.has(String(bcid || '').toLowerCase())
 }
 
-export function listBwipSymbolGroups () {
+export function listBwipSymbols ({ matrix, mainstream } = {}) {
+  let list = BARCODE_BWIP_SYMBOLS
+  if (matrix === true) list = list.filter((s) => isBwipMatrixBcid(s.bcid))
+  else if (matrix === false) list = list.filter((s) => !isBwipMatrixBcid(s.bcid))
+  else list = list.slice()
+  if (mainstream) list = list.filter((s) => isMainstreamBwipBcid(s.bcid))
+  return list
+}
+
+export function listBwipSymbolGroups ({ mainstream } = {}) {
   return GROUP_META.map((g) => ({
     ...g,
-    items: BARCODE_BWIP_SYMBOLS.filter((s) => s.group === g.id)
+    items: BARCODE_BWIP_SYMBOLS.filter((s) => s.group === g.id && (!mainstream || isMainstreamBwipBcid(s.bcid)))
   })).filter((g) => g.items.length)
 }

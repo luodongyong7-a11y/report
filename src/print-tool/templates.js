@@ -1,11 +1,12 @@
 import { REPORT_TEMPLATE_API_BASE, templateItemUrl, withStamp } from './api.js'
 import { ht } from './i18n.js'
+import { isPdfFile, pdfToTemplate } from './import-pdf.js'
 import { hasStoragePlugin, openStorageDialog } from './storage-ui.js'
 import { confirmDlg, promptDlg, toast, downloadBlob, invalidId } from './util.js'
 
 function defaultNameFromFile (fileName) {
   if (!fileName || typeof fileName !== 'string') return ''
-  return fileName.replace(/^.*[/\\]/, '').replace(/\.json$/i, '').trim()
+  return fileName.replace(/^.*[/\\]/, '').replace(/\.(json|pdf)$/i, '').trim()
 }
 
 function emptyTemplate (id) {
@@ -14,6 +15,8 @@ function emptyTemplate (id) {
     paperSize: { width: 794, height: 1123 },
     paperPreset: 'A4',
     paperOrientation: 'portrait',
+    printKind: 'document',
+    summaryEnabled: true,
     headerY: 60,
     footerY: 1123 - 60,
     summaryA: null,
@@ -132,7 +135,7 @@ export function mountTemplates (host, pane, ctx) {
           (hasStoragePlugin(ctx.storagePlugin)
             ? '<button type="button" class="action-btn storage-btn" data-act="storage" title="' + ht(host, 'designer.templatesPanel.storageTitle') + '">' + svg.storage + '</button>'
             : '') +
-          '<input type="file" data-file="imp" accept=".json" style="display:none">'
+          '<input type="file" data-file="imp" accept=".json,.pdf,application/json,application/pdf" style="display:none">'
         : '') +
       '</div>' +
       (rows
@@ -174,20 +177,24 @@ export function mountTemplates (host, pane, ctx) {
   }
 
   async function importFile (file) {
-    let parsed
+    let data
     try {
-      parsed = JSON.parse(await file.text())
+      if (isPdfFile(file)) {
+        data = await pdfToTemplate(await file.arrayBuffer())
+      } else {
+        const parsed = JSON.parse(await file.text())
+        data = parsed
+        if (data && (data.elements || data.paperSize)) {
+          /* 合法对象 */
+        } else if (Array.isArray(data)) {
+          data = { elements: data }
+        } else {
+          toast(host, ht(host, 'designer.templateIo.invalidFormat'), 'err')
+          return
+        }
+      }
     } catch (err) {
       toast(host, ht(host, 'designer.templateIo.importError', { msg: err.message }), 'err')
-      return
-    }
-    let data = parsed
-    if (data && (data.elements || data.paperSize)) {
-      /* 合法对象 */
-    } else if (Array.isArray(data)) {
-      data = { elements: data }
-    } else {
-      toast(host, ht(host, 'designer.templateIo.invalidFormat'), 'err')
       return
     }
     const form = await promptDlg(host, ht(host, 'designer.templateIo.importTitle'), [

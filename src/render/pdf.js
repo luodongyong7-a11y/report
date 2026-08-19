@@ -23,18 +23,37 @@ function fillOf (placed, fallback) {
   return s.backgroundColor || s.fill || fallback || null
 }
 
+function borderSidesOf (border) {
+  if (!border) return { top: false, right: false, bottom: false, left: false }
+  const flagged = border.top != null || border.right != null || border.bottom != null || border.left != null
+  if (!flagged) return { top: true, right: true, bottom: true, left: true }
+  return {
+    top: border.top !== false,
+    right: border.right !== false,
+    bottom: border.bottom !== false,
+    left: border.left !== false
+  }
+}
+
 function drawBorder (page, placed, pageH) {
   const w = resolveBorderWidth(placed)
   if (!w) return
+  const sides = borderSidesOf(placed.border)
+  if (!sides.top && !sides.right && !sides.bottom && !sides.left) return
   const c = (placed.border && placed.border.color) || '#000'
-  page.drawRect({
-    x: pt(placed.x),
-    y: pageY(pageH, placed.y, placed.height),
-    width: pt(placed.width),
-    height: pt(placed.height),
-    stroke: c,
-    lineWidth: pt(w)
-  })
+  const x = pt(placed.x)
+  const y = pageY(pageH, placed.y, placed.height)
+  const width = pt(placed.width)
+  const height = pt(placed.height)
+  const lw = pt(w)
+  if (sides.top && sides.right && sides.bottom && sides.left) {
+    page.drawRect({ x, y, width, height, stroke: c, lineWidth: lw })
+    return
+  }
+  if (sides.bottom) page.drawRect({ x, y, width, height: lw, fill: c })
+  if (sides.top) page.drawRect({ x, y: y + height - lw, width, height: lw, fill: c })
+  if (sides.left) page.drawRect({ x, y, width: lw, height, fill: c })
+  if (sides.right) page.drawRect({ x: x + width - lw, y, width: lw, height, fill: c })
 }
 
 function drawText (page, placed, pageH) {

@@ -27,6 +27,9 @@ button, select, input, textarea { font: inherit; }
   padding: 6px 8px;
   border-bottom: 1px solid var(--line);
   background: #fff;
+  overflow: visible;
+  position: relative;
+  z-index: 6;
 }
 .nd-bar button, .nd-bar select, .nd-bar input[type=number] {
   height: 26px;

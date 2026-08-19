@@ -186,6 +186,8 @@ export function mountPrintTool (host, opts = {}) {
       paperSize: Object.assign({}, tpl.paperSize),
       paperPreset: tpl.paperPreset,
       paperOrientation: tpl.paperOrientation,
+      printKind: tpl.printKind === 'label' ? 'label' : 'document',
+      summaryEnabled: tpl.printKind === 'label' ? false : tpl.summaryEnabled !== false,
       headerY,
       footerY,
       summaryA: tpl.summaryA,

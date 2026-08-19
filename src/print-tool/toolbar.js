@@ -1,3 +1,4 @@
+import { borderSidesOf, borderStateOf } from '../designer/align.js'
 import { validateMergeSelectionV2 } from '../designer/merge.js'
 
 const DESIGNER_FONT_WHITELIST = [
@@ -13,11 +14,57 @@ const ICON = {
   syncW: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12v2H2zM2 6h5v2H2zM2 10h5v2H2zM9 6h5v2H9zM9 10h5v2H9z"/></svg>',
   centerH: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="6" width="12" height="4" fill="none" stroke="currentColor" stroke-width="1"/><circle cx="8" cy="8" r="1" fill="currentColor"/></svg>',
   centerV: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="6" y="2" width="4" height="12" fill="none" stroke="currentColor" stroke-width="1"/><circle cx="8" cy="8" r="1" fill="currentColor"/></svg>',
-  space: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M1 4h2v1H1zm4 0h2v1H5zm4 0h2v1H9zm4 0h2v1h-2zM1 8h2v1H1zm4 0h2v1H5zm4 0h2v1H9zm4 0h2v1h-2zM1 12h2v1H1zm4 0h2v1H5zm4 0h2v1H9zm4 0h2v1h-2z"/></svg>'
+  space: '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M1 4h2v1H1zm4 0h2v1H5zm4 0h2v1H9zm4 0h2v1h-2zM1 8h2v1H1zm4 0h2v1H5zm4 0h2v1H9zm4 0h2v1h-2zM1 12h2v1H1zm4 0h2v1H5zm4 0h2v1H9zm4 0h2v1h-2z"/></svg>',
+  portrait: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="1.5" width="8" height="13" rx="1"/></svg>',
+  landscape: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="4" width="13" height="8" rx="1"/></svg>',
+  borderAll: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="2.5" width="11" height="11"/><path d="M8 2.5v11M2.5 8h11"/></svg>',
+  borderLine: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="10" height="10"/></svg>',
+  borderMixed: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="10" height="10" stroke-dasharray="2 2"/><path d="M6 8h4" stroke-linecap="round"/></svg>',
+  borderNone: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2.5" y="2.5" width="11" height="11"/><path d="M4 12L12 4"/></svg>',
+  borderBottom: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"><rect x="3" y="3" width="10" height="10" stroke-width="1" opacity=".35"/><path d="M3 13h10" stroke-width="1.8"/></svg>',
+  borderTop: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"><rect x="3" y="3" width="10" height="10" stroke-width="1" opacity=".35"/><path d="M3 3h10" stroke-width="1.8"/></svg>',
+  borderLeft: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"><rect x="3" y="3" width="10" height="10" stroke-width="1" opacity=".35"/><path d="M3 3v10" stroke-width="1.8"/></svg>',
+  borderRight: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"><rect x="3" y="3" width="10" height="10" stroke-width="1" opacity=".35"/><path d="M13 3v10" stroke-width="1.8"/></svg>',
+  fill: '<svg width="12" height="10" viewBox="0 0 12 10"><rect x="0.5" y="0.5" width="11" height="9" rx="1" fill="#fff" stroke="currentColor"/></svg>'
 }
 
 function esc (s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;')
+}
+
+function commonValue (els, get) {
+  if (!els.length) return { mixed: false, value: '' }
+  const first = get(els[0])
+  for (let i = 1; i < els.length; i++) {
+    if (get(els[i]) !== first) return { mixed: true, value: first }
+  }
+  return { mixed: false, value: first }
+}
+
+function dashAttr (style) {
+  if (style === 'dashed') return ' stroke-dasharray="3 2"'
+  if (style === 'dotted') return ' stroke-dasharray="1.2 1.6"'
+  return ''
+}
+
+function borderFaceIcon (sides, style, width) {
+  const s = sides || {}
+  const sw = Math.max(1.2, Math.min(2.6, 0.8 + Number(width || 1) * 0.35))
+  const on = 'fill="none" stroke="#111827" stroke-width="' + sw + '" stroke-linecap="square"' + dashAttr(style)
+  const off = 'fill="none" stroke="#c0c4cc" stroke-width="1.2" stroke-linecap="square"'
+  return '<svg width="16" height="16" viewBox="0 0 16 16">' +
+    '<path d="M3.2 3.2h9.6" ' + (s.top ? on : off) + '/>' +
+    '<path d="M12.8 3.2v9.6" ' + (s.right ? on : off) + '/>' +
+    '<path d="M3.2 12.8h9.6" ' + (s.bottom ? on : off) + '/>' +
+    '<path d="M3.2 3.2v9.6" ' + (s.left ? on : off) + '/>' +
+    '</svg>'
+}
+
+function fillFaceIcon (color, mixed) {
+  if (mixed) {
+    return '<svg width="14" height="12" viewBox="0 0 14 12"><rect x="0.5" y="0.5" width="13" height="11" rx="1" fill="#fff" stroke="#9ca3af"/><path d="M1 11L13 1" stroke="#9ca3af"/></svg>'
+  }
+  return '<svg width="14" height="12" viewBox="0 0 14 12"><rect x="0.5" y="0.5" width="13" height="11" rx="1" fill="' + esc(color || '#ffffff') + '" stroke="#9ca3af"/></svg>'
 }
 
 function firstStyle (els) {
@@ -84,9 +131,24 @@ export function renderToolbar (tpl, selectedEls, ui) {
       return '<option value="' + esc(v) + '"' + (!fontMixed && st.fontFamily === v ? ' selected' : '') + '>' + esc(lab) + '</option>'
     }).join('')
   const fsNum = parseFloat(st.fontSize) || 10
-  const bw = (selectedEls[0] && selectedEls[0].border && selectedEls[0].border.width) || 1
-  const bs = (selectedEls[0] && selectedEls[0].border && selectedEls[0].border.style) || 'solid'
-  const bc = (selectedEls[0] && selectedEls[0].border && selectedEls[0].border.color) || '#000000'
+  const draft = (ui && ui.borderDraft) || {}
+  const elB = selectedEls[0] && selectedEls[0].border
+  const bw = Number((elB && elB.width) || draft.width || 1) || 1
+  const bs = (elB && elB.style) || draft.style || 'solid'
+  const bc = (elB && elB.color) || draft.color || '#000000'
+  const sides = borderSidesOf(elB)
+  const allOn = sides.top && sides.right && sides.bottom && sides.left
+  const noneOn = !sides.top && !sides.right && !sides.bottom && !sides.left
+  const borderState = borderStateOf(selectedEls)
+  const faceMixed = borderState === 'mixed'
+  const borderIcon = faceMixed ? ICON.borderMixed : borderFaceIcon(sides, bs, bw)
+  const borderTitle = borderState === 'on' ? tr('designer.toolbar.borderToggleOn') : (faceMixed ? tr('designer.toolbar.borderToggleMixed') : tr('designer.toolbar.borderToggleOff'))
+  const menuOpen = !!(ui && ui.borderMenuOpen && hasSel)
+  const textColorMix = commonValue(selectedEls, (e) => (((e.style || {}).color) || '#000000'))
+  const bgColorMix = commonValue(selectedEls, (e) => (((e.style || {}).backgroundColor) || '#ffffff'))
+  const textColor = textColorMix.value || '#000000'
+  const bgColor = bgColorMix.value || '#ffffff'
+  const off = hasSel ? '' : ' disabled'
   const textAlign = (selectedEls[0] && selectedEls[0].textAlign) || 'center'
   const vAlign = (selectedEls[0] && selectedEls[0].verticalAlign) || 'top'
   const bold = st.fontWeight === 'bold' || st.fontWeight === '700'
@@ -94,10 +156,15 @@ export function renderToolbar (tpl, selectedEls, ui) {
   const under = st.textDecoration === 'underline'
   const strike = st.textDecoration === 'line-through'
   const dis = hasSel ? '' : ' disabled'
+  const kind = tpl.printKind === 'label' ? 'label' : 'document'
+  const summaryOn = kind !== 'label' && tpl.summaryEnabled !== false
   let html = ''
-  html += '<div class="paper-controls"><div class="paper-size-selector">'
-  html += '<label for="paperSize">' + esc(tr('designer.toolbar.paper')) + '</label>'
-  html += '<select data-act="preset" id="paperSize">'
+  html += '<div class="tb-seg paper-controls">'
+  html += '<select data-act="kind" id="printKind" title="' + esc(tr('designer.toolbar.kind')) + '">'
+  html += '<option value="document"' + (kind !== 'label' ? ' selected' : '') + '>' + esc(tr('designer.toolbar.kindReport')) + '</option>'
+  html += '<option value="label"' + (kind === 'label' ? ' selected' : '') + '>' + esc(tr('designer.toolbar.kindLabel')) + '</option>'
+  html += '</select>'
+  html += '<select data-act="preset" id="paperSize" title="' + esc(tr('designer.toolbar.paper')) + '">'
   html += '<option value="A4"' + (preset === 'A4' ? ' selected' : '') + '>A4</option>'
   html += '<option value="A5"' + (preset === 'A5' ? ' selected' : '') + '>A5</option>'
   html += '<option value="B5"' + (preset === 'B5' ? ' selected' : '') + '>B5</option>'
@@ -112,12 +179,12 @@ export function renderToolbar (tpl, selectedEls, ui) {
     html += '<span class="unit">mm</span>'
     html += '</div>'
   }
+  html += '<button type="button" class="tb-btn tb-btn--solo" data-act="orient" title="' + esc(orient === 'landscape' ? tr('designer.toolbar.landscape') : tr('designer.toolbar.portrait')) + '">' + (orient === 'landscape' ? ICON.landscape : ICON.portrait) + '</button>'
+  if (kind !== 'label') {
+    html += '<label class="summary-toggle"><input type="checkbox" data-act="summary"' + (summaryOn ? ' checked' : '') + '> ' + esc(tr('designer.toolbar.summaryEnabled')) + '</label>'
+  }
   html += '</div>'
-  html += '<div class="orientation-selector">'
-  html += '<label><input type="radio" name="npt-orient" data-act="orient" value="portrait"' + (orient !== 'landscape' ? ' checked' : '') + '> ' + esc(tr('designer.toolbar.portrait')) + '</label>'
-  html += '<label><input type="radio" name="npt-orient" data-act="orient" value="landscape"' + (orient === 'landscape' ? ' checked' : '') + '> ' + esc(tr('designer.toolbar.landscape')) + '</label>'
-  html += '</div></div>'
-  html += '<div class="alignment-buttons tb-group">'
+  html += '<div class="tb-seg tb-group alignment-buttons">'
   html += '<button type="button" class="tb-btn" data-act="alignx" title="' + esc(tr('designer.toolbar.alignXTitle')) + '">' + ICON.alignX + '</button>'
   html += '<button type="button" class="tb-btn" data-act="aligny" title="' + esc(tr('designer.toolbar.alignYTitle')) + '">' + ICON.alignY + '</button>'
   html += '<button type="button" class="tb-btn" data-act="syncw" title="' + esc(tr('designer.toolbar.syncColWidthTitle')) + '">' + ICON.syncW + '</button>'
@@ -126,33 +193,61 @@ export function renderToolbar (tpl, selectedEls, ui) {
   html += '<button type="button" class="tb-btn" data-act="centerv" title="' + esc(tr('designer.toolbar.centerVTitle')) + '">' + ICON.centerV + '</button>'
   html += '<button type="button" class="tb-btn" data-act="space" title="' + esc(tr('designer.toolbar.distributeTitle')) + '">' + ICON.space + '</button>'
   html += '</div>'
-  html += '<div class="border-controls">'
-  html += '<div class="control-group"><select data-act="bw" title="' + esc(tr('designer.toolbar.borderWidthTitle')) + '">' + [1, 2, 3, 4, 5].map((n) => '<option value="' + n + '"' + (Number(bw) === n ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></div>'
-  html += '<div class="control-group"><select data-act="bs" title="' + esc(tr('designer.toolbar.borderStyleTitle')) + '"><option value="solid"' + (bs === 'solid' ? ' selected' : '') + '>────</option><option value="dashed"' + (bs === 'dashed' ? ' selected' : '') + '>--------</option><option value="dotted"' + (bs === 'dotted' ? ' selected' : '') + '>····</option></select></div>'
-  html += '<div class="control-group"><input type="color" data-act="bc" value="' + esc(bc) + '" title="' + esc(tr('designer.toolbar.borderColorTitle')) + '"></div>'
-  html += '<div class="control-group tb-group"><button type="button" class="tb-btn" data-act="border" title="' + esc(tr('designer.toolbar.toggleBorderTitle')) + '">▢</button></div>'
+  html += '<div class="tb-seg border-menu' + (hasSel ? '' : ' is-off') + '">'
+  html += '<div class="border-split' + (menuOpen ? ' is-open' : '') + '">'
+  html += '<button type="button" class="border-split__main is-' + (faceMixed ? 'mixed' : borderState) + '" data-act="border-toggle" title="' + esc(borderTitle) + '"' + off + '>'
+  html += borderIcon
+  html += '</button>'
+  html += '<button type="button" class="border-split__caret" data-act="border-more" title="' + esc(tr('designer.toolbar.borderMoreTitle')) + '"' + off + '>▾</button>'
+  html += '<div class="border-menu__panel" data-menu="border">'
+  html += '<input type="hidden" data-act="bw" value="' + esc(bw) + '">'
+  html += '<input type="hidden" data-act="bs" value="' + esc(bs) + '">'
+  html += '<button type="button" class="border-item' + (sides.bottom ? ' on' : '') + '" data-act="border-bottom">' + ICON.borderBottom + '<span>' + esc(tr('designer.toolbar.borderBottom')) + '</span></button>'
+  html += '<button type="button" class="border-item' + (sides.top ? ' on' : '') + '" data-act="border-top">' + ICON.borderTop + '<span>' + esc(tr('designer.toolbar.borderTop')) + '</span></button>'
+  html += '<button type="button" class="border-item' + (sides.left ? ' on' : '') + '" data-act="border-left">' + ICON.borderLeft + '<span>' + esc(tr('designer.toolbar.borderLeft')) + '</span></button>'
+  html += '<button type="button" class="border-item' + (sides.right ? ' on' : '') + '" data-act="border-right">' + ICON.borderRight + '<span>' + esc(tr('designer.toolbar.borderRight')) + '</span></button>'
+  html += '<button type="button" class="border-item' + (noneOn ? ' on' : '') + '" data-act="border-none">' + ICON.borderNone + '<span>' + esc(tr('designer.toolbar.borderNone')) + '</span></button>'
+  html += '<button type="button" class="border-item' + (allOn ? ' on' : '') + '" data-act="border-all">' + ICON.borderAll + '<span>' + esc(tr('designer.toolbar.borderAll')) + '</span></button>'
+  html += '<div class="border-menu__hr"></div>'
+  html += '<div class="border-menu__lab">' + esc(tr('designer.toolbar.borderLineStyle')) + '</div>'
+  html += '<div class="border-menu__row">'
+  html += [1, 2, 3, 4, 5].map((n) => '<button type="button" class="border-chip' + (Number(bw) === n ? ' on' : '') + '" data-act="bw-pick" data-val="' + n + '">' + n + '</button>').join('')
   html += '</div>'
-  html += '<div class="text-style-controls">'
-  html += '<div class="control-group"><input type="color" data-act="color" value="' + esc(st.color || '#000000') + '" title="' + esc(tr('designer.toolbar.textColorTitle')) + '"' + dis + '></div>'
-  html += '<div class="control-group"><input type="color" data-act="bg" value="' + esc(st.backgroundColor || '#ffffff') + '" title="' + esc(tr('designer.toolbar.bgColorTitle')) + '"' + dis + '></div>'
-  html += '<div class="control-group"><select data-act="fontFamily" title="' + esc(tr('designer.toolbar.fontFamilySelect')) + '"' + dis + '>' + fontOpts + '</select></div>'
-  html += '<div class="control-group"><select data-act="fontSize" title="' + esc(tr('designer.toolbar.fontSizeTitle')) + '"' + dis + '>' + FONT_SIZES.map((n) => '<option value="' + n + '"' + (n === fsNum ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></div>'
-  html += '<div class="control-group tb-group">'
+  html += '<div class="border-menu__row">'
+  html += ['solid', 'dashed', 'dotted'].map((stName) => '<button type="button" class="border-chip border-chip--style' + (bs === stName ? ' on' : '') + '" data-act="bs-pick" data-val="' + stName + '"><span class="border-chip__line" style="border-bottom:2px ' + stName + ' currentColor"></span></button>').join('')
+  html += '</div>'
+  html += '<div class="border-menu__lab">' + esc(tr('designer.toolbar.borderLineColor')) + '</div>'
+  html += '<label class="border-color-pick"><input type="color" data-act="bc" value="' + esc(bc) + '"' + off + '></label>'
+  html += '</div></div></div>'
+  html += '<div class="tb-seg text-style-controls' + (hasSel ? '' : ' is-off') + '">'
+  html += '<select data-act="fontFamily" title="' + esc(tr('designer.toolbar.fontFamilySelect')) + '"' + dis + '>' + fontOpts + '</select>'
+  html += '<select data-act="fontSize" title="' + esc(tr('designer.toolbar.fontSizeTitle')) + '"' + dis + '>' + FONT_SIZES.map((n) => '<option value="' + n + '"' + (n === fsNum ? ' selected' : '') + '>' + n + '</option>').join('') + '</select>'
+  html += '<div class="tb-group">'
   html += '<button type="button" class="tb-btn' + (bold ? ' active' : '') + '" data-act="bold" title="' + esc(tr('designer.toolbar.boldTitle')) + '"' + dis + '><b>B</b></button>'
   html += '<button type="button" class="tb-btn' + (italic ? ' active' : '') + '" data-act="italic" title="' + esc(tr('designer.toolbar.italicTitle')) + '"' + dis + '><i>I</i></button>'
   html += '<button type="button" class="tb-btn' + (under ? ' active' : '') + '" data-act="under" title="' + esc(tr('designer.toolbar.underlineTitle')) + '"' + dis + '><u>U</u></button>'
   html += '<button type="button" class="tb-btn' + (strike ? ' active' : '') + '" data-act="strike" title="' + esc(tr('designer.toolbar.strikethroughTitle')) + '"' + dis + '><s>S</s></button>'
+  html += '<label class="tb-color" title="' + esc(tr('designer.toolbar.textColorTitle')) + '">'
+  html += '<span class="tb-color__mark' + (textColorMix.mixed ? ' is-mixed' : '') + '" style="color:' + esc(textColorMix.mixed ? '#6b7280' : textColor) + '">A</span>'
+  html += '<input type="color" class="tb-color__native" data-act="color" value="' + esc(st.color || '#000000') + '"' + dis + '>'
+  html += '</label>'
+  html += '<label class="tb-color" title="' + esc(tr('designer.toolbar.bgColorTitle')) + '">'
+  html += '<span class="tb-color__mark tb-color__mark--fill">' + fillFaceIcon(bgColor, bgColorMix.mixed) + '</span>'
+  html += '<input type="color" class="tb-color__native" data-act="bg" value="' + esc(st.backgroundColor || '#ffffff') + '"' + dis + '>'
+  html += '</label>'
   html += '</div>'
-  html += '<div class="control-group tb-group">'
+  html += '<div class="tb-group">'
   html += '<button type="button" class="tb-btn" data-act="talign" title="' + alignTitle(textAlign) + '"' + dis + '>' + alignIcon(textAlign) + '</button>'
   html += '<button type="button" class="tb-btn" data-act="valign" title="' + valignTitle(vAlign) + '"' + dis + '>' + valignIcon(vAlign) + '</button>'
   html += '</div></div>'
-  html += '<div class="view-toggle">'
-  html += '<button class="tb-action" type="button" data-act="frontend-print" title="' + esc(tr('designer.toolbar.frontendPrintBtn')) + '">' + esc(tr('designer.toolbar.frontendPrintBtn')) + '</button>'
-  html += '<button class="tb-action tb-action--primary" type="button" data-act="pdf-print" title="' + esc(tr('designer.toolbar.pdfPrintBtn')) + '">' + esc(tr('designer.toolbar.pdfPrintBtn')) + '</button>'
-  html += '<button class="tb-action" type="button" data-act="frontend-jump" title="' + esc(tr('designer.toolbar.frontendJumpBtn')) + '">' + esc(tr('designer.toolbar.frontendJumpBtn')) + '</button>'
-  html += '<button class="tb-action" type="button" data-act="pdf-jump" title="' + esc(tr('designer.toolbar.pdfJumpBtn')) + '">' + esc(tr('designer.toolbar.pdfJumpBtn')) + '</button>'
-  html += '</div>'
+  html += '<details class="tb-seg print-menu" data-menu="print">'
+  html += '<summary class="tb-action">' + esc(tr('designer.toolbar.printMenu')) + '<span class="print-menu__caret">▾</span></summary>'
+  html += '<div class="print-menu__list">'
+  html += '<button class="print-menu__item" type="button" data-act="frontend-print">' + esc(tr('designer.toolbar.frontendPrintBtn')) + '</button>'
+  html += '<button class="print-menu__item" type="button" data-act="pdf-print">' + esc(tr('designer.toolbar.pdfPrintBtn')) + '</button>'
+  html += '<button class="print-menu__item" type="button" data-act="frontend-jump">' + esc(tr('designer.toolbar.frontendJumpBtn')) + '</button>'
+  html += '<button class="print-menu__item" type="button" data-act="pdf-jump">' + esc(tr('designer.toolbar.pdfJumpBtn')) + '</button>'
+  html += '</div></details>'
   return html
 }
 

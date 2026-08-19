@@ -3,8 +3,14 @@ function readMessage (data, status) {
   return 'HTTP ' + status
 }
 
+function notifyUnauthorized () {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new CustomEvent('niqer-unauthorized'))
+}
+
 async function finish (res, req) {
   if (!res.ok) {
+    if (res.status === 401) notifyUnauthorized()
     let data = null
     try { data = await res.clone().json() } catch { /* 非 JSON */ }
     const err = new Error(readMessage(data, res.status))

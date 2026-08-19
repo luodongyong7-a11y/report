@@ -117,6 +117,27 @@ export function normalizeDesignerTemplate (raw) {
   return ensureReportSchemaVersion(t)
 }
 
+function clampBandY (v, height) {
+  const n = Number(v)
+  if (!Number.isFinite(n)) return n
+  return Math.max(0, Math.min(n, height))
+}
+
+function keepBandsOnPaperChange (tpl, height) {
+  const h = Number(height) || 0
+  if (!(h > 0)) return
+  if (Number.isFinite(Number(tpl.headerY))) {
+    tpl.headerY = clampBandY(tpl.headerY, h)
+    tpl.headerHeight = tpl.headerY
+  }
+  if (Number.isFinite(Number(tpl.footerY))) {
+    tpl.footerY = clampBandY(tpl.footerY, h)
+    tpl.footerHeight = Math.max(0, h - tpl.footerY)
+  }
+  if (Number.isFinite(Number(tpl.summaryA))) tpl.summaryA = clampBandY(tpl.summaryA, h)
+  if (Number.isFinite(Number(tpl.summaryB))) tpl.summaryB = clampBandY(tpl.summaryB, h)
+}
+
 export function applyPaperPreset (tpl, preset, orientation) {
   const key = String(preset || 'A4').toUpperCase()
   const dim = REPORT_PRESET_PX[key]
@@ -128,7 +149,7 @@ export function applyPaperPreset (tpl, preset, orientation) {
   tpl.paperOrientation = landscape ? 'landscape' : 'portrait'
   tpl.paperSize = { width, height }
   tpl.customPaperSize = { width, height }
-  Object.assign(tpl, defaultBands(height, tpl.printKind))
+  keepBandsOnPaperChange(tpl, height)
   return tpl
 }
 
@@ -148,13 +169,12 @@ export function applyCustomPaperMm (tpl, widthMm, heightMm, orientation) {
   tpl.paperSize = { width, height }
   tpl.customPaperSize = { width, height }
   tpl.customPaperSizeMm = { width: wmm, height: hmm }
-  Object.assign(tpl, defaultBands(height, tpl.printKind))
+  keepBandsOnPaperChange(tpl, height)
   return tpl
 }
 
 export function applyPrintKind (tpl, kind) {
   tpl.printKind = kind === 'label' ? 'label' : 'document'
-  Object.assign(tpl, defaultBands(tpl.paperSize.height, tpl.printKind))
   return tpl
 }
 
@@ -187,6 +207,8 @@ export function createElement (type, pos, extra) {
     el.style = { backgroundColor: '#000000' }
   }
   if (extra && typeof extra === 'object') Object.assign(el, extra)
+  if (t === 'barcode' && !el.barcodeFormat) el.barcodeFormat = 'code128'
+  if (t === 'qrcode' && !el.qrcodeFormat) el.qrcodeFormat = 'qrcode'
   snapQrcode(el)
   return el
 }

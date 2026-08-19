@@ -18,7 +18,7 @@ export function barcodeElementGeometry (element, symbol) {
   if (element && element.type === 'qrcode') {
     const size = previewQrCanvasSize(element)
     return {
-      format: 'qrcode',
+      format: (element && element.qrcodeFormat) || 'qrcode',
       module: size / Math.max(1, (symbol && symbol.width) || 1),
       height: size,
       color: (element.style && element.style.color) || '#000000'

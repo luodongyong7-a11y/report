@@ -27,14 +27,57 @@ export function isPdfFile (file) {
   return file && (file.type === 'application/pdf' || name.endsWith('.pdf'))
 }
 
+function boxToPx (box, pageHeightPt) {
+  const wPt = Number(box.wPt != null ? box.wPt : box.w)
+  const hPt = Number(box.hPt != null ? box.hPt : box.h)
+  const xPt = box.xPt != null ? box.xPt : box.minX
+  const yTop = box.yTopPt != null ? box.yTopPt : (pageHeightPt - (box.minY || 0) - hPt)
+  return {
+    x: round((xPt || 0) * SCALE),
+    y: round((yTop || 0) * SCALE),
+    width: round((wPt || 0) * SCALE),
+    height: round((hPt || wPt || 0) * SCALE)
+  }
+}
+
 export async function pdfToTemplate (bytes) {
   const data = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)
   const layout = extractPageLayout(data, 0)
   const width = round(layout.pageWidthPt * SCALE)
   const height = round(layout.pageHeightPt * SCALE)
   const elements = []
+  for (const path of layout.paths || []) {
+    const box = boxToPx(path, layout.pageHeightPt)
+    if (!(box.width > 0 && box.height > 0)) continue
+    elements.push({
+      id: uid('rect'),
+      type: 'rect',
+      x: box.x,
+      y: box.y,
+      width: box.width,
+      height: box.height,
+      style: { backgroundColor: path.fill || '#000000' }
+    })
+  }
+  for (const img of layout.images || []) {
+    const box = boxToPx(img, layout.pageHeightPt)
+    if (!(box.width > 0)) continue
+    let content = ''
+    if (img.dataUrl) content = img.dataUrl
+    else if (img.dataBase64) content = 'data:image/png;base64,' + img.dataBase64
+    elements.push({
+      id: uid('img'),
+      type: 'image',
+      x: box.x,
+      y: box.y,
+      width: box.width,
+      height: box.height || box.width,
+      content
+    })
+  }
   for (const line of layout.textLines || []) {
     const fontPx = Math.max(1, round(line.fontSize * SCALE))
+    const family = (line.fontFace && line.fontFace.family) || 'Arial'
     elements.push({
       id: uid('text'),
       type: 'text',
@@ -47,28 +90,9 @@ export async function pdfToTemplate (bytes) {
       verticalAlign: 'top',
       style: {
         fontSize: fontPx + 'px',
-        fontFamily: 'Arial',
+        fontFamily: family,
         color: line.color || '#000000'
       }
-    })
-  }
-  for (const img of layout.images || []) {
-    const wPt = Number(img.wPt != null ? img.wPt : img.w)
-    const hPt = Number(img.hPt != null ? img.hPt : img.h)
-    if (!(wPt > 0)) continue
-    let content = ''
-    if (img.dataUrl) content = img.dataUrl
-    else if (img.dataBase64) content = 'data:image/png;base64,' + img.dataBase64
-    const xPt = img.xPt != null ? img.xPt : img.minX
-    const yTop = img.yTopPt != null ? img.yTopPt : (layout.pageHeightPt - (img.minY || 0) - hPt)
-    elements.push({
-      id: uid('img'),
-      type: 'image',
-      x: round((xPt || 0) * SCALE),
-      y: round((yTop || 0) * SCALE),
-      width: round(wPt * SCALE),
-      height: round((hPt || wPt) * SCALE),
-      content
     })
   }
   return {
