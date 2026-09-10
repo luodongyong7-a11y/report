@@ -1,4 +1,4 @@
-# report (standalone)
+﻿# report (standalone)
 
 Standalone report tool hosted on GitHub.
 
@@ -25,3 +25,8 @@ cd apps/report-tool-web && npm run dev
 Open http://localhost:5174/  (admin / admin123)
 
 See docker-compose.tool.test.yml for containerized tool stack.
+
+## Cloud VPS
+
+Full stack (web+api+pdf): see [docs/deploy-cloud.md](docs/deploy-cloud.md). Build images with scripts/build-cloud-images.ps1, then docker-compose.cloud.yml on a public VPS.
+
