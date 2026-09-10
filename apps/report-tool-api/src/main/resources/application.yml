@@ -1,0 +1,35 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: report-tool-api
+  datasource:
+    url: jdbc:h2:file:./data/tool;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  cache:
+    type: simple
+
+report:
+  enabled: true
+  auth:
+    enforce-admin: true
+  license:
+    key: ${REPORT_LICENSE_KEY:}
+    file: ${REPORT_LICENSE_FILE:}
+  storage:
+    type: local
+    prefix: reports/
+  pdf:
+    sidecar-url: http://127.0.0.1:7321/render
+  api:
+    allowed-url-prefixes: "*"
+    internal-base-url: ${REPORT_API_INTERNAL_BASE_URL:}
+  tool:
+    data-dir: ./data
+    admin-username: admin
+    admin-password: admin123
+    jwt-secret: report-tool-dev-jwt-secret-change-me
+    jwt-ttl-ms: 86400000

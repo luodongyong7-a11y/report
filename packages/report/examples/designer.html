@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>niqer-designer</title>
+<style>
+  html, body { height: 100%; margin: 0; }
+  niqer-designer { height: 100vh; }
+</style>
+<script type="module">
+  import '../src/index.js'
+  const el = document.querySelector('niqer-designer')
+  el.addEventListener('change', (e) => {
+    document.title = 'niqer-designer · ' + (e.detail.template.elements || []).length + ' 元件'
+  })
+</script>
+<niqer-designer></niqer-designer>

@@ -1,0 +1,4 @@
+/target/
+/dist/
+/third_party/*.exe
+*.pdb

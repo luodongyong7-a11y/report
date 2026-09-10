@@ -1,0 +1,31 @@
+{
+  "name": "report-pdf",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Report PDF/XLSX sidecar renderer",
+  "scripts": {
+    "spike:checks": "node spike/run.mjs",
+    "spike:pdf": "node spike/sample-pdf.mjs",
+    "engine:smoke": "node engine/dev/smoke.mjs",
+    "engine:smoke-xlsx": "node engine/dev/smoke-xlsx.mjs",
+    "engine:check": "node engine/dev/check-measure.mjs",
+    "engine:raster": "node engine/dev/rasterize.mjs",
+    "engine:sweep": "node engine/dev/sweep.mjs",
+    "engine:serve": "node engine/server.mjs"
+  },
+  "dependencies": {
+    "@chenglou/pretext": "^0.0.8",
+    "@napi-rs/canvas": "^1.0.0",
+    "@niqer/barcode": "file:D:/niqer-barcode",
+    "@niqer/pdf": "file:D:/niqer-pdf",
+    "@niqer/report-core": "file:../packages/report-core",
+    "decimal.js": "^10.6.0",
+    "exceljs": "^4.4.0",
+    "fontkit": "^2.0.4"
+  },
+  "devDependencies": {
+    "jszip": "^3.10.1",
+    "pdfjs-dist": "^6.0.227"
+  }
+}

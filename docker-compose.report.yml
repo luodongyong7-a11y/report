@@ -1,0 +1,28 @@
+# 报表 PDF/XLSX 边车（可粘贴到宿主 compose）
+services:
+  report-pdf:
+    image: ${REPORT_PDF_IMAGE:-report-pdf:1.0.0}
+    container_name: report-pdf
+    restart: unless-stopped
+    environment:
+      PORT: 7321
+      HOST: 0.0.0.0
+      TZ: Asia/Ho_Chi_Minh
+      REPORT_WORKERS: ${REPORT_WORKERS:-2}
+      REPORT_WORKER_HEAP_MB: ${REPORT_WORKER_HEAP_MB:-2048}
+      REPORT_MAX_DATA_ROWS: ${REPORT_MAX_DATA_ROWS:-200000}
+      REPORT_FONT_TIMES: /usr/share/fonts/win/times.ttf
+      REPORT_FONT_TIMES_BOLD: /usr/share/fonts/win/timesbd.ttf
+      REPORT_FONT_TIMES_ITALIC: /usr/share/fonts/win/timesi.ttf
+      REPORT_FONT_TIMES_BOLDITALIC: /usr/share/fonts/win/timesbi.ttf
+      REPORT_FONT_SIMSUN: /usr/share/fonts/win/simsun.ttc
+      REPORT_FONT_SIMHEI: /usr/share/fonts/win/simhei.ttf
+      REPORT_FONT_SYMBOL: /usr/share/fonts/win/seguisym.ttf
+    ports:
+      - "${REPORT_PDF_PORT:-7321}:7321"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:7321/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

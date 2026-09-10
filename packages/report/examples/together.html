@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>designer + report</title>
+<style>
+  html, body { height: 100%; margin: 0; }
+  .row { display: flex; height: 100vh; }
+  niqer-designer { flex: 1; min-width: 0; }
+  .prev { width: 380px; overflow: auto; background: #eee; padding: 12px; }
+</style>
+<script type="module">
+  import '../src/index.js'
+  const d = document.querySelector('niqer-designer')
+  const r = document.querySelector('niqer-report')
+  d.addEventListener('change', (e) => {
+    r.template = e.detail.template
+    r.data = e.detail.template.dataset
+  })
+  d.addEventListener('ready', (e) => {
+    r.template = e.detail.template
+    r.data = e.detail.template.dataset
+  })
+</script>
+<div class="row">
+  <niqer-designer></niqer-designer>
+  <div class="prev">
+    <niqer-report scale="0.5"></niqer-report>
+  </div>
+</div>

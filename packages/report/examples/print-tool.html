@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>niqer-print-tool</title>
+<style>
+  html, body { height: 100%; margin: 0; }
+  niqer-print-tool { height: 100vh; }
+</style>
+<script type="module">
+  import '../src/index.js'
+  const el = document.querySelector('niqer-print-tool')
+  el.getAuthHeaders = () => {
+    const token = sessionStorage.getItem('report-supply-token') || ''
+    return token ? { Authorization: 'Bearer ' + token } : {}
+  }
+  el.addEventListener('error', (e) => console.error(e.detail))
+</script>
+<niqer-print-tool api-base="/report" template-api="/report/mode" locale="zh-CN"></niqer-print-tool>

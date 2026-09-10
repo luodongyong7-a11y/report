@@ -1,0 +1,176 @@
+html, body, #app, report-tool-app {
+  margin: 0;
+  min-height: 100%;
+  height: 100%;
+  font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #111827;
+}
+
+report-tool-app,
+niqer-print-tool,
+niqer-report-preview {
+  display: block;
+  height: 100%;
+}
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+}
+
+.login-card {
+  width: 360px;
+  padding: 28px 28px 24px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.login-card h1 {
+  margin: 0 0 20px;
+  font-size: 20px;
+  font-weight: 650;
+  color: #111827;
+  text-align: center;
+}
+
+.login-btn {
+  width: 100%;
+  height: 40px;
+  border: 0;
+  border-radius: 8px;
+  background: #111827;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.login-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.form-row label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.form-row input,
+.form-row textarea,
+.form-row select {
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  background: #fafafa;
+}
+
+.form-row input:focus,
+.form-row textarea:focus,
+.form-row select:focus {
+  outline: none;
+  border-color: #2563eb;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.form-row input:disabled {
+  color: #6b7280;
+  background: #f3f4f6;
+}
+
+.error-text {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+.tool-person-card__item.danger {
+  color: #b91c1c;
+}
+
+.tool-avatar-chip {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 40;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: #111827;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 650;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+}
+
+.tool-avatar-chip.open {
+  outline: 2px solid #9ca3af;
+}
+
+.tool-person-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+}
+
+.tool-person-card {
+  position: fixed;
+  right: 20px;
+  bottom: 70px;
+  z-index: 41;
+  width: 220px;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+}
+
+.tool-person-card__who {
+  padding: 8px 8px 10px;
+  border-bottom: 1px solid #f3f4f6;
+  margin-bottom: 6px;
+}
+
+.tool-person-card__name {
+  font-weight: 650;
+}
+
+.tool-person-card__sub {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.tool-person-card__item {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #111827;
+}
+
+.tool-person-card__item:hover {
+  background: #f3f4f6;
+}

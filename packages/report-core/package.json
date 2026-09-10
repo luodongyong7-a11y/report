@@ -1,0 +1,24 @@
+{
+  "name": "@niqer/report-core",
+  "version": "1.0.0",
+  "description": "Framework-agnostic report expressions, font policy, schema, paper and layout core",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./expressions": "./src/expressions.js",
+    "./font-policy": "./src/fontPolicy.js",
+    "./schema": "./src/schema.js",
+    "./paper": "./src/paper.js",
+    "./layout": "./src/layout/index.js",
+    "./layout/*": "./src/layout/*"
+  },
+  "files": [
+    "src"
+  ],
+  "dependencies": {
+    "decimal.js": "^10.6.0"
+  },
+  "license": "UNLICENSED",
+  "private": false
+}

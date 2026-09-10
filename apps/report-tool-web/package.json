@@ -1,0 +1,19 @@
+{
+  "name": "report-tool-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
+    "@codemirror/lang-sql": "^6.10.0",
+    "@codemirror/state": "^6.7.1",
+    "@niqer/report": "workspace:*",
+    "codemirror": "^6.0.2"
+  },
+  "devDependencies": {
+    "vite": "^6.2.5"
+  }
+}
