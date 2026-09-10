@@ -7,15 +7,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(__dirname, '../..')
 const niqerReport = path.resolve(repoRoot, 'packages/report')
 
-function niqerReportRaw () {
+function niqerReportRaw (base = '/') {
   const src = path.resolve(niqerReport, 'dist/index.js')
+  const prefix = base.endsWith('/') ? base : `${base}/`
   return {
     name: 'niqer-report-raw',
     apply: 'build',
     transformIndexHtml () {
       return [{
         tag: 'script',
-        attrs: { type: 'module', src: '/niqer-report.js' },
+        attrs: { type: 'module', src: `${prefix}niqer-report.js` },
         injectTo: 'head-prepend'
       }]
     },
@@ -30,12 +31,14 @@ function niqerReportRaw () {
 }
 
 export default defineConfig(({ mode }) => {
+  const base = process.env.VITE_BASE || '/'
   const alias = {}
   if (mode !== 'production') {
     alias['@niqer/report'] = path.resolve(niqerReport, 'src/index.js')
   }
   return {
-    plugins: [niqerReportRaw()],
+    base,
+    plugins: [niqerReportRaw(base)],
     resolve: { alias },
     server: {
       port: 5174,

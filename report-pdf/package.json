@@ -17,8 +17,8 @@
   "dependencies": {
     "@chenglou/pretext": "^0.0.8",
     "@napi-rs/canvas": "^1.0.0",
-    "@niqer/barcode": "file:D:/niqer-barcode",
-    "@niqer/pdf": "file:D:/niqer-pdf",
+    "@niqer/barcode": "git+https://github.com/luodongyong7-a11y/barcode.git#main",
+    "@niqer/pdf": "git+https://github.com/luodongyong7-a11y/pdf.git#main",
     "@niqer/report-core": "file:../packages/report-core",
     "decimal.js": "^10.6.0",
     "exceljs": "^4.4.0",

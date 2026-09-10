@@ -7,5 +7,10 @@
   "scripts": {
     "build:starter": "mvn -f report-starter/pom.xml -DskipTests install",
     "engine:serve": "pnpm --filter report-pdf run engine:serve"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }
