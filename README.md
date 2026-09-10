@@ -7,7 +7,7 @@
 - `<niqer-designer>` 只画布
 - `<niqer-report>` 按模板+数据在浏览器里分页预览或出 PDF
 
-和旁边的 `D:/niqer-pdf`、`D:/niqer-barcode` 一起用（`file:D:/niqer-*` 引用）。小数运算自带一份 decimal.js。不依赖 Vue。
+依赖公开仓库 `@niqer/pdf`、`@niqer/barcode`（`git+https://github.com/luodongyong7-a11y/niqer-*.git`），可在任意环境安装构建。小数运算自带一份 decimal.js。不依赖 Vue。
 
 ```html
 <script type="module" src="./src/index.js"></script>

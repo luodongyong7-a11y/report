@@ -12,7 +12,7 @@ await esbuild.build({
   platform: 'browser',
   outfile: path.join(root, 'dist/pdf-paint-worker.js'),
   alias: {
-    '@niqer/pdf': 'D:/niqer-pdf/src/index.js',
-    '@niqer/barcode': 'D:/niqer-barcode/src/index.js'
+    '@niqer/pdf': path.join(root, 'node_modules/@niqer/pdf/src/index.js'),
+    '@niqer/barcode': path.join(root, 'node_modules/@niqer/barcode/src/index.js')
   }
 })

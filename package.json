@@ -50,8 +50,8 @@
     "@codemirror/autocomplete": "^6.20.3",
     "@codemirror/lang-sql": "^6.10.0",
     "@codemirror/state": "^6.7.1",
-    "@niqer/barcode": "file:D:/niqer-barcode",
-    "@niqer/pdf": "file:D:/niqer-pdf",
+    "@niqer/barcode": "git+https://github.com/luodongyong7-a11y/niqer-barcode.git#main",
+    "@niqer/pdf": "git+https://github.com/luodongyong7-a11y/niqer-pdf.git#main",
     "codemirror": "^6.0.2"
   },
   "devDependencies": {
